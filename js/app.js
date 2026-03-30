@@ -437,52 +437,68 @@ const App = {
                 <h4 class="roster-group-title">${group.label}</h4>
                 <div class="roster-slot-list">`;
             
-            group.slots.forEach(slot => {
-                const playerName = roster[slot.key] || '';
-                const score = playerName ? DataStore.getPlayerScore(this.rosterMonth, playerName, slot.key) : 0;
-                const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
-                
-                // Show input if editing OR if read-only but player exists
-                // If not editing and player is empty, maybe just show '-' but an empty input is fine too for alignment
-                html += `
-                    <div class="slot-row">
-                        <span class="slot-label">${slot.label}</span>
-                        <div class="slot-content">
-                            <input type="text" class="input slot-input" 
-                                placeholder="${this.isEditingRoster ? '선수 이름' : '비어 있음'}" 
-                                value="${playerName}"
-                                data-slot="${slot.key}"
-                                ${readonlyAttr}
-                                onblur="App.handleSlotInput(this)"
-                                onkeydown="if(event.key==='Enter') this.blur();">
-                        </div>
-                        ${playerName ? `<span class="slot-score ${scoreClass}">${score.toFixed(2)}</span>` : '<span class="slot-score score-zero">-</span>'}
-                    </div>`;
-            });
+        group.slots.forEach(slot => {
+            const player = roster[slot.key];
+            const name = player ? (typeof player === 'string' ? player : player.name) : '';
+            const team = player ? (typeof player === 'string' ? '' : player.team) : '';
+            const score = player ? DataStore.getPlayerScore(this.rosterMonth, player, slot.key) : 0;
+            const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
             
-            html += `</div></div>`;
+            const readonlyAttr = this.isEditingRoster ? '' : 'readonly';
+            const disabledAttr = this.isEditingRoster ? '' : 'disabled';
+            
+            html += `
+                <div class="slot-row" data-slot="${slot.key}">
+                    <span class="slot-label">${slot.label}</span>
+                    <div class="slot-content">
+                        <input type="text" class="input slot-input" 
+                            placeholder="${this.isEditingRoster ? '선수 이름' : ''}" 
+                            value="${name}"
+                            ${readonlyAttr}
+                            onblur="App.handleSlotChange(this)"
+                            onkeydown="if(event.key==='Enter') this.blur();">
+                        <select class="slot-team-select" ${disabledAttr} onchange="App.handleSlotChange(this)">
+                            <option value="">팀</option>
+                            ${DataStore.KBO_TEAMS.map(t => `<option value="${t}" ${team === t ? 'selected' : ''}>${t}</option>`).join('')}
+                        </select>
+                    </div>
+                    ${name ? `<span class="slot-score ${scoreClass}">${score.toFixed(2)}</span>` : '<span class="slot-score score-zero">-</span>'}
+                </div>`;
         });
         
-        listEl.innerHTML = html;
-    },
+        html += `</div></div>`;
+    });
+    
+    listEl.innerHTML = html;
+},
 
-    handleSlotInput(inputEl) {
-        if (!this.currentDetailTeamId) return;
-        const slotKey = inputEl.dataset.slot;
-        const newName = inputEl.value.trim();
-        const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth) || {};
-        const oldName = roster[slotKey] || '';
+handleSlotChange(el) {
+    if (!this.currentDetailTeamId) return;
+    const row = el.closest('.slot-row');
+    if (!row) return;
 
-        if (newName === oldName) return; // No change
+    const slotKey = row.dataset.slot;
+    const newName = row.querySelector('.slot-input').value.trim();
+    const newTeam = row.querySelector('.slot-team-select').value;
+    
+    const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth) || {};
+    const oldPlayer = roster[slotKey];
+    const oldName = oldPlayer ? (typeof oldPlayer === 'string' ? oldPlayer : oldPlayer.name) : '';
+    const oldTeam = oldPlayer ? (typeof oldPlayer === 'string' ? '' : oldPlayer.team) : '';
 
-        DataStore.setSlot(this.currentDetailTeamId, this.rosterMonth, slotKey, newName);
-        this.syncToFirebase('updateRoster', this.currentDetailTeamId);
-        this.renderRosterMonth();
-        this.refreshDashboard(); // Update scores behind modal
-        
-        if (newName) this.showToast(`${newName} 선수가 등록되었습니다`);
-        else this.showToast(`등록 해제되었습니다`);
-    },
+    if (newName === oldName && newTeam === oldTeam) return;
+
+    DataStore.setSlot(this.currentDetailTeamId, this.rosterMonth, slotKey, newName, newTeam);
+    this.syncToFirebase('updateRoster', this.currentDetailTeamId);
+    this.renderRosterMonth();
+    this.refreshDashboard(); 
+    
+    if (newName) {
+        this.showToast(`${newName}${newTeam ? ` (${newTeam})` : ''} 선수가 등록되었습니다`);
+    } else {
+        this.showToast(`등록 해제되었습니다`);
+    }
+},
 
     copyPrevMonthRoster() {
         if (!this.currentDetailTeamId) return;

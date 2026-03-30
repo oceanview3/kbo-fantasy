@@ -999,16 +999,51 @@ body {
 
 .slot-content {
     flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .slot-input {
-    width: 100%;
+    flex: 1.5;
     color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
     padding: 6px 8px;
     border-radius: 4px;
     transition: var(--transition);
+    min-width: 0; /* Prevents overflow in flexbox */
+}
+
+.slot-team-select {
+    flex: 0.8;
+    padding: 6px 24px 6px 10px;
+    background-color: rgba(255, 255, 255, 0.05);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%2394a3b8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 13px;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+    min-width: 0;
+}
+
+.slot-team-select:hover:not([disabled]) {
+    border-color: var(--accent-blue);
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.slot-team-select[disabled] {
+    opacity: 0.7;
+    cursor: default;
+    background-image: none;
+    background-color: transparent;
+    border-color: transparent;
 }
 
 .slot-input[readonly] {

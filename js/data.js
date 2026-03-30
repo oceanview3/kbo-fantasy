@@ -192,15 +192,20 @@ const DataStore = {
         }
     },
 
+    KBO_TEAMS: ['KIA','삼성','LG','두산','KT','SSG','롯데','한화','NC','키움'],
+
     // 단일 슬롯 저장 (빈 문자열이면 슬롯 삭제)
-    setSlot(teamId, month, slotKey, playerName) {
+    setSlot(teamId, month, slotKey, playerName, playerTeam) {
         const data = this.load();
         const team = data.teams.find(t => t.id === teamId);
         if (!team) return;
         if (!team.roster) team.roster = {};
         if (!team.roster[month]) team.roster[month] = {};
         if (playerName && playerName.trim()) {
-            team.roster[month][slotKey] = playerName.trim();
+            team.roster[month][slotKey] = {
+                name: playerName.trim(),
+                team: playerTeam || ''
+            };
         } else {
             delete team.roster[month][slotKey];
         }
@@ -214,22 +219,38 @@ const DataStore = {
         return ['SP1','SP2','SP3','SP4','SP5','RP1','RP2','RP3','RP4','RP5'].includes(slotKey);
     },
 
-    getPlayerScore(month, playerName, slotKey) {
+    getPlayerScore(month, player, slotKey) {
+        if (!player) return 0;
+        const name = typeof player === 'string' ? player.trim() : player.name;
+        const team = typeof player === 'string' ? '' : player.team;
+        if (!name) return 0;
+
         const monthScores = this.getScores(month);
+        
         // Supports both new partitioned format and old flat format (fallback)
-        if (this.isPitcherSlot(slotKey)) {
-            return (monthScores.pitchers?.[playerName]) || (monthScores[playerName]) || 0;
-        } else {
-            return (monthScores.batters?.[playerName]) || (monthScores[playerName]) || 0;
+        const pitchers = monthScores.pitchers || {};
+        const batters = monthScores.batters || {};
+        
+        const isPitcher = this.isPitcherSlot(slotKey);
+        const pool = isPitcher ? pitchers : batters;
+
+        // Try exact match with team: "이름 (팀)"
+        if (team) {
+            const keyWithTeam = `${name} (${team})`;
+            if (pool[keyWithTeam]) return pool[keyWithTeam];
+            if (monthScores[keyWithTeam]) return monthScores[keyWithTeam];
         }
+
+        // Fallback to name only
+        return (pool[name]) || (monthScores[name]) || 0;
     },
 
     getTeamScore(teamId, month) {
         const roster = this.getMonthRoster(teamId, month);
         let sum = 0;
-        for (const [slotKey, name] of Object.entries(roster)) {
-            if (name && name.trim()) {
-                sum += this.getPlayerScore(month, name.trim(), slotKey);
+        for (const [slotKey, player] of Object.entries(roster)) {
+            if (player) {
+                sum += this.getPlayerScore(month, player, slotKey);
             }
         }
         return sum;
@@ -255,7 +276,11 @@ const DataStore = {
 
     getActivePlayerCount(teamId, month) {
         const roster = this.getMonthRoster(teamId, month);
-        return Object.values(roster).filter(name => name && name.trim()).length;
+        return Object.values(roster).filter(p => {
+            if (!p) return false;
+            const name = typeof p === 'string' ? p : p.name;
+            return name && name.trim();
+        }).length;
     },
 
     // ── Month ─────────────────────────────────

@@ -58,11 +58,14 @@ const Scraper = {
                 if (isNaN(rank) || rank <= 0) return;
 
                 const name = cells[1].textContent.trim().split('\n')[0].trim();
+                const team = cells[2].textContent.trim(); // Extract team (e.g., KT, KIA)
                 const scoreText = cells[3].textContent.trim().replace(',', '');
                 const score = parseFloat(scoreText);
 
                 if (name && name.length >= 2 && !isNaN(score)) {
-                    players[name] = score;
+                    // Unique key: Name (Team)
+                    const key = team ? `${name} (${team})` : name;
+                    players[key] = score;
                 }
             } catch (e) {
                 // Skip invalid rows
