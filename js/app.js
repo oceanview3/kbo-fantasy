@@ -12,7 +12,19 @@ const App = {
     db: null,
 
     async init() {
-        this.currentMonth = DataStore.getCurrentMonth();
+        // Detect current real-world month
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+        
+        if (SEASON_MONTHS.includes(monthKey)) {
+            this.currentMonth = monthKey;
+            DataStore.setCurrentMonth(monthKey);
+        } else {
+            this.currentMonth = DataStore.getCurrentMonth();
+        }
+
         this.bindEvents();
         this.refreshDashboard();
 
@@ -231,51 +243,57 @@ const App = {
         overlay.classList.add('active');
         barFill.style.width = '0%';
         percentEl.textContent = '0%';
-        statusEl.textContent = '준비 중...';
-
-        // Set up progress callback
-        Scraper.onProgress = (percent, message) => {
-            barFill.style.width = percent + '%';
-            percentEl.textContent = percent + '%';
-            statusEl.textContent = message;
-        };
-
+        
+        // Find months to update (from March to current month)
+        const currentIdx = SEASON_MONTHS.indexOf(this.currentMonth);
+        const monthsToFetch = currentIdx >= 0 ? SEASON_MONTHS.slice(0, currentIdx + 1) : [this.currentMonth];
+        
         try {
-            // Parse current month
-            const parts = this.currentMonth.split('-');
-            const year = parseInt(parts[0]);
-            const month = parseInt(parts[1]);
+            for (let i = 0; i < monthsToFetch.length; i++) {
+                const targetMonth = monthsToFetch[i];
+                const monthParts = targetMonth.split('-');
+                const monthNum = parseInt(monthParts[1]);
+                
+                statusEl.textContent = `${monthNum}월 점수 업데이트 중...`;
 
-            // Scrape from welcometopranking
-            const scores = await Scraper.scrapeAll(year, month);
-            const playerCount = Object.keys(scores).length;
+                // Set up progress callback for this month's scraping
+                Scraper.onProgress = (percent, message) => {
+                    const stepBase = (i / monthsToFetch.length) * 100;
+                    const stepProgress = (percent / monthsToFetch.length);
+                    const totalPercent = Math.round(stepBase + stepProgress);
+                    
+                    barFill.style.width = totalPercent + '%';
+                    percentEl.textContent = totalPercent + '%';
+                    statusEl.textContent = `[${monthNum}월] ${message}`;
+                };
 
-            if (playerCount === 0) {
-                throw new Error('수집된 선수가 없습니다');
+                // Scrape from welcometopranking
+                const scores = await Scraper.scrapeAll(parseInt(monthParts[0]), monthNum);
+                
+                if (Object.keys(scores).length > 0) {
+                    // Upload to Firebase
+                    if (this.useFirebase) {
+                        await Scraper.uploadToFirebase(this.db, scores, targetMonth);
+                    }
+                    // Update local data
+                    const data = DataStore.load();
+                    data.scores[targetMonth] = scores;
+                    DataStore.save(data);
+                }
             }
-
-            // Upload to Firebase
-            if (this.useFirebase) {
-                await Scraper.uploadToFirebase(this.db, scores, this.currentMonth);
-            }
-
-            // Update local data
-            const data = DataStore.load();
-            data.scores[this.currentMonth] = scores;
-            DataStore.save(data);
 
             // Refresh UI
             this.refreshDashboard();
-            if (this.currentView === 'teams') this.refreshTeamsGrid();
             if (this.currentDetailTeamId) this.refreshTeamDetail();
             await this.updateLastUpdated();
 
-            statusEl.textContent = `${playerCount}명 선수 점수 업데이트 완료!`;
+            statusEl.textContent = `전체 기간 업데이트 완료!`;
+            barFill.style.width = '100%';
+            percentEl.textContent = '100%';
 
             // Keep overlay for a moment to show completion
             await new Promise(r => setTimeout(r, 1200));
-
-            this.showToast(`${playerCount}명 점수 업데이트 완료!`);
+            this.showToast(`전체 점수 업데이트 완료!`);
 
         } catch (e) {
             console.error('[App] Refresh failed:', e);
