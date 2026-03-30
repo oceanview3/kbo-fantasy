@@ -63,18 +63,28 @@ const UI = {
             })
             .sort((a, b) => b.score - a.score);
 
-        // Update headers with month names
+        // Update headers with month names (Mobile optimization)
+        const isMobile = window.innerWidth <= 768;
         const curMonthNum = parseInt(month.split('-')[1]);
         const monthIdx = SEASON_MONTHS.indexOf(month);
         const prevMonthStr = monthIdx > 0 ? SEASON_MONTHS[monthIdx - 1] : null;
         const prevMonthNum = prevMonthStr ? parseInt(prevMonthStr.split('-')[1]) : null;
 
+        const totalHeader = document.getElementById('col-total-score');
+        if (totalHeader) totalHeader.textContent = isMobile ? '총점' : '총 누적 점수';
+
         const curHeader = document.getElementById('col-current-month');
-        if (curHeader) curHeader.textContent = `${curMonthNum}월 점수`;
+        if (curHeader) {
+            curHeader.textContent = isMobile ? `${curMonthNum}월` : `${curMonthNum}월 점수`;
+        }
 
         const prevHeader = document.getElementById('col-prev-month');
         if (prevHeader) {
-            prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월 점수` : '-';
+            if (isMobile) {
+                prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월` : '-';
+            } else {
+                prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월 점수` : '-';
+            }
         }
 
         if (!sorted.length) {

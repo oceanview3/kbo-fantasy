@@ -1266,49 +1266,165 @@ body {
 /* ============================================
    Responsive
    ============================================ */
+/* ============================================
+   Responsive Optimization
+   ============================================ */
 @media (max-width: 768px) {
-    .header-inner {
-        padding: 0 16px;
-        flex-wrap: wrap;
-        height: auto;
-        padding-top: 12px;
-        padding-bottom: 12px;
-        gap: 8px;
+    :root { 
+        --header-height: 72px; 
     }
 
-    .logo-title { font-size: 15px; }
-    .logo-subtitle { display: none; }
+    .container, .main-content { padding: 0 12px; }
 
-    :root { --header-height: 110px; }
-
-    .podium-section {
+    /* Header */
+    .header-inner { padding: 0 12px; }
+    .logo-title { font-size: 16px; }
+    
+    /* Update bar hide for mobile (moved to FAB) */
+    .update-bar {
+        display: flex;
         flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        margin-top: 8px;
+    }
+    
+    .update-time { font-size: 11px; }
+    
+    /* Refresh Button as FAB */
+    #btn-refresh {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 60px;
+        height: 60px;
+        border-radius: 30px;
+        background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+        color: white;
+        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.4);
+        z-index: 500;
+        display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        font-size: 0; /* Hide text */
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    #btn-refresh:active {
+        transform: scale(0.9);
+    }
+    
+    #btn-refresh .refresh-icon {
+        font-size: 28px;
+        margin-right: 0;
+    }
+
+    /* Podium: Horizontal Mini-Podium */
+    .podium-section {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr 1fr;
+        gap: 8px;
+        margin: 0 0 24px 0;
+        padding: 0;
+        align-items: end;
+    }
+
+    .podium-card {
+        padding: 12px 6px;
+        max-width: none;
+        border-radius: var(--radius-md);
+    }
+
+    .podium-card.first {
+        padding: 24px 8px;
+        order: 2;
+    }
+    
+    .podium-card.second { order: 1; }
+    .podium-card.third { order: 3; }
+
+    .podium-rank {
+        width: 24px;
+        height: 24px;
+        font-size: 11px;
+        margin-bottom: 8px;
+    }
+
+    .podium-card.first .podium-rank {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+
+    .podium-team-name { 
+        font-size: 13px; 
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .podium-card.first .podium-team-name { font-size: 15px; }
+    
+    .podium-owner { font-size: 10px; margin-bottom: 4px; }
+    
+    .podium-score { font-size: 18px; }
+    .podium-card.first .podium-score { font-size: 24px; }
+    
+    .podium-score-label { display: none; }
+
+    /* Ranking Table: Horizontal Scroll */
+    .ranking-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -12px;
+        border-radius: 0;
+        border-right: none;
+        border-left: none;
+    }
+
+    .ranking-table {
+        min-width: 600px;
+    }
+
+    .ranking-table th, .ranking-table td {
+        padding: 12px 10px;
+    }
+
+    .team-name-cell {
+        font-size: 14px;
+        white-space: nowrap;
+    }
+    
+    .rank-badge {
+        width: 24px;
+        height: 24px;
+        font-size: 12px;
+    }
+
+    /* Modal Mobile optimization */
+    .modal {
+        max-height: 92vh;
+        margin: 0;
+        border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        position: fixed;
+        bottom: 0;
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+    }
+    
+    .modal-overlay {
+        align-items: flex-end;
         padding: 0;
     }
-
-    .podium-card { max-width: 100%; order: unset !important; }
-    .podium-card.first { order: unset !important; }
-
-    .teams-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .modal {
-        max-height: 95vh;
-        border-radius: var(--radius-lg);
-    }
-
-    .form-row {
-        flex-direction: column;
-    }
-
-    .ranking-table th:nth-child(5),
-    .ranking-table td:nth-child(5),
-    .hidden-mobile {
-        display: none !important;
-    }
+    
+    .modal-header { padding: 20px; }
+    .modal-body { padding: 0 16px 40px; }
 }
 
 /* ============================================
