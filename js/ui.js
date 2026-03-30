@@ -32,7 +32,6 @@ const UI = {
             <div class="podium-card ${classes[i]}" data-team-id="${team.id}">
                 <div class="podium-rank">${i + 1}</div>
                 <div class="podium-team-name">${team.name}</div>
-                <div class="podium-owner">${team.owner}</div>
                 <div class="podium-score">${team.score.toFixed(2)}</div>
                 <div class="podium-score-label">톱랭킹 포인트</div>
             </div>
@@ -54,7 +53,7 @@ const UI = {
             .map(t => ({
                 ...t,
                 score: DataStore.getTeamScore(t.id, month),
-                activeCount: DataStore.getActivePlayerCount(t.id)
+                activeCount: DataStore.getActivePlayerCount(t.id, month)
             }))
             .sort((a, b) => b.score - a.score);
 
@@ -84,7 +83,7 @@ const UI = {
                 <tr data-team-id="${team.id}">
                     <td class="rank-col"><span class="rank-badge ${badgeClass}">${rank}</span></td>
                     <td><span class="team-name-cell">${team.name}</span></td>
-                    <td>${team.owner}</td>
+                    <td></td>
                     <td class="score-col"><span class="score-value ${team.score >= 0 ? 'score-positive' : 'score-negative'}">${team.score.toFixed(2)}</span></td>
                     <td><span class="players-count">${team.activeCount}명 출전</span></td>
                     <td class="detail-col"><span class="detail-arrow">›</span></td>

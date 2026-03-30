@@ -883,6 +883,141 @@ body {
 .player-action-btn.toggle-inactive { color: var(--text-muted); }
 
 /* ============================================
+   Monthly Roster Navigation
+   ============================================ */
+.roster-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 14px 0 10px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+}
+
+.roster-month-arrow {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+}
+
+.roster-month-arrow:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.roster-month-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.roster-month-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-primary);
+    min-width: 60px;
+    text-align: center;
+}
+
+.roster-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 24px 0 8px;
+}
+
+/* Player row simplified (name + score + delete) */
+.player-row-simple {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.player-row-simple:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--border-hover);
+}
+
+.player-num {
+    font-size: 11px;
+    color: var(--text-muted);
+    min-width: 20px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.player-name-simple {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.player-score-simple {
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 56px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.roster-add-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.roster-add-row .input {
+    flex: 1;
+    font-size: 13px;
+    padding: 9px 12px;
+}
+
+.btn-sm {
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
+.roster-copy-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.btn-copy-month {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.btn-copy-month:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+/* ============================================
    Buttons & Forms
    ============================================ */
 .btn {

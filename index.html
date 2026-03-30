@@ -101,7 +101,6 @@
             <div class="modal-header">
                 <div class="modal-team-info">
                     <h2 class="modal-team-name" id="modal-team-name">팀 이름</h2>
-                    <span class="modal-team-owner" id="modal-team-owner">오너</span>
                 </div>
                 <div class="modal-team-score">
                     <span class="modal-score-label">월간 총점</span>
@@ -111,97 +110,44 @@
             </div>
             <div class="modal-body">
                 <div class="modal-tabs">
-                    <button class="modal-tab active" data-tab="roster" id="tab-roster">📋 출전 명단</button>
-                    <button class="modal-tab" data-tab="bench" id="tab-bench">🪑 벤치</button>
+                    <button class="modal-tab active" data-tab="roster" id="tab-roster">📋 선수 명단</button>
                     <button class="modal-tab" data-tab="manage" id="tab-manage">⚙️ 편집</button>
                 </div>
+
+                <!-- Roster Tab: 월별 선수 명단 -->
                 <div class="modal-tab-content active" id="tab-content-roster">
-                    <div class="roster-section">
-                        <h3 class="roster-title">⚾ 타자</h3>
-                        <div class="player-list" id="roster-batters"></div>
+                    <!-- Month navigation -->
+                    <div class="roster-month-nav">
+                        <button class="roster-month-arrow" id="roster-month-prev">‹</button>
+                        <span class="roster-month-label" id="roster-month-label">3월</span>
+                        <button class="roster-month-arrow" id="roster-month-next">›</button>
                     </div>
-                    <div class="roster-section">
-                        <h3 class="roster-title">⚡ 선발 투수</h3>
-                        <div class="player-list" id="roster-sp"></div>
+                    <!-- Player list for selected month -->
+                    <div class="player-list" id="roster-player-list"></div>
+                    <div class="roster-empty" id="roster-empty" style="display:none">
+                        이 달 등록된 선수가 없습니다
                     </div>
-                    <div class="roster-section">
-                        <h3 class="roster-title">🔥 불펜 투수</h3>
-                        <div class="player-list" id="roster-rp"></div>
+                    <!-- Quick add in roster view -->
+                    <div class="roster-add-row">
+                        <input type="text" id="roster-new-player" class="input" placeholder="선수 이름 입력 후 Enter">
+                        <button class="btn btn-primary btn-sm" id="roster-btn-add">추가</button>
+                    </div>
+                    <!-- Copy from prev month -->
+                    <div class="roster-copy-row" id="roster-copy-row">
+                        <button class="btn-copy-month" id="btn-copy-prev-month">
+                            ← 이전 달 명단 복사
+                        </button>
                     </div>
                 </div>
-                <div class="modal-tab-content" id="tab-content-bench">
-                    <div class="player-list" id="bench-players"></div>
-                </div>
+
+                <!-- Manage Tab -->
                 <div class="modal-tab-content" id="tab-content-manage">
                     <div class="manage-section">
-                        <h3 class="manage-title">팀 정보</h3>
+                        <h3 class="manage-title">팀 이름 수정</h3>
                         <div class="form-group">
-                            <label>팀 이름</label>
                             <input type="text" id="edit-team-name" class="input" placeholder="팀 이름">
                         </div>
-                        <div class="form-group">
-                            <label>오너</label>
-                            <input type="text" id="edit-team-owner" class="input" placeholder="오너 이름">
-                        </div>
                         <button class="btn btn-primary" id="btn-save-team-info">저장</button>
-                    </div>
-                    <hr class="divider">
-                    <div class="manage-section">
-                        <h3 class="manage-title">선수 추가</h3>
-                        <div class="form-row">
-                            <input type="text" id="new-player-name" class="input" placeholder="선수 이름">
-                            <select id="new-player-position" class="select">
-                                <option value="">포지션</option>
-                                <optgroup label="타자">
-                                    <option value="C">C</option>
-                                    <option value="1B">1B</option>
-                                    <option value="2B">2B</option>
-                                    <option value="3B">3B</option>
-                                    <option value="SS">SS</option>
-                                    <option value="LF">LF</option>
-                                    <option value="CF">CF</option>
-                                    <option value="RF">RF</option>
-                                    <option value="DH">DH</option>
-                                </optgroup>
-                                <optgroup label="투수">
-                                    <option value="SP">선발 투수 (SP)</option>
-                                    <option value="RP">릴리프 투수 (RP)</option>
-                                </optgroup>
-                            </select>
-                            <select id="new-player-role" class="select">
-                                <option value="">역할</option>
-                                <optgroup label="타자 스팟">
-                                    <option value="C">포수(C)</option>
-                                    <option value="1B">1루수</option>
-                                    <option value="2B">2루수</option>
-                                    <option value="3B">3루수</option>
-                                    <option value="SS">유격수</option>
-                                    <option value="LF">좌익수</option>
-                                    <option value="CF">중견수</option>
-                                    <option value="RF">우익수</option>
-                                    <option value="DH">지명타자</option>
-                                </optgroup>
-                                <optgroup label="투수">
-                                    <option value="SP1">1선발</option>
-                                    <option value="SP2">2선발</option>
-                                    <option value="SP3">3선발</option>
-                                    <option value="SP4">4선발</option>
-                                    <option value="SP5">5선발</option>
-                                    <option value="RP1">1불펜</option>
-                                    <option value="RP2">2불펜</option>
-                                    <option value="RP3">3불펜</option>
-                                    <option value="RP4">4불펜</option>
-                                    <option value="RP5">5불펜</option>
-                                </optgroup>
-                                <optgroup label="후보">
-                                    <option value="BN1">후보 1</option>
-                                    <option value="BN2">후보 2</option>
-                                    <option value="BN3">후보 3</option>
-                                    <option value="BN4">후보 4</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <button class="btn btn-primary" id="btn-add-player">선수 추가</button>
                     </div>
                     <hr class="divider">
                     <div class="manage-section">
@@ -224,10 +170,6 @@
                 <div class="form-group">
                     <label>팀 이름</label>
                     <input type="text" id="add-team-name" class="input" placeholder="예: 빌맙스">
-                </div>
-                <div class="form-group">
-                    <label>오너 이름</label>
-                    <input type="text" id="add-team-owner" class="input" placeholder="예: 상민">
                 </div>
                 <button class="btn btn-primary btn-full" id="btn-create-team">팀 생성</button>
             </div>

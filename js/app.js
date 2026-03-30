@@ -7,6 +7,7 @@ const App = {
     currentMonth: null,
     currentView: 'dashboard',
     currentDetailTeamId: null,
+    rosterMonth: null,   // month currently shown in the team detail roster
     useFirebase: false,
     db: null,
 
@@ -61,48 +62,36 @@ const App = {
 
     async uploadToFirebase() {
         const data = DataStore.load();
-
-        // Upload teams
         const batch = this.db.batch();
         data.teams.forEach((team, i) => {
             const ref = this.db.collection('teams').doc(team.id);
             batch.set(ref, {
                 name: team.name,
-                owner: team.owner,
-                players: team.players || [],
+                roster: team.roster || {},
                 order: i
             });
         });
-
-        // Upload scores
         for (const [month, scores] of Object.entries(data.scores || {})) {
             const ref = this.db.collection('scores').doc(month);
             batch.set(ref, { players: scores });
         }
-
         await batch.commit();
         console.log('[App] Data uploaded to Firebase');
     },
 
     async downloadFromFirebase() {
         const data = DataStore.load();
-
-        // Download teams
         const teamsSnap = await this.db.collection('teams').orderBy('order').get();
         data.teams = teamsSnap.docs.map(doc => ({
             id: doc.id,
             name: doc.data().name,
-            owner: doc.data().owner,
-            players: doc.data().players || []
+            roster: doc.data().roster || {}
         }));
-
-        // Download scores
         const scoresSnap = await this.db.collection('scores').get();
         data.scores = {};
         scoresSnap.docs.forEach(doc => {
             data.scores[doc.id] = doc.data().players || {};
         });
-
         DataStore.save(data);
         console.log('[App] Data downloaded from Firebase');
     },
@@ -157,8 +146,7 @@ const App = {
                 case 'addTeam': {
                     const [team] = args;
                     await this.db.collection('teams').doc(team.id).set({
-                        name: team.name, owner: team.owner,
-                        players: team.players || [], order: DataStore.getTeams().length - 1
+                        name: team.name, roster: team.roster || {}, order: DataStore.getTeams().length - 1
                     });
                     break;
                 }
@@ -172,12 +160,12 @@ const App = {
                     await this.db.collection('teams').doc(teamId).delete();
                     break;
                 }
-                case 'updatePlayers': {
+                case 'updateRoster': {
                     const [teamId] = args;
                     const team = DataStore.getTeam(teamId);
                     if (team) {
                         await this.db.collection('teams').doc(teamId).update({
-                            players: team.players
+                            roster: team.roster || {}
                         });
                     }
                     break;
@@ -226,8 +214,20 @@ const App = {
 
         // Team editing
         document.getElementById('btn-save-team-info').addEventListener('click', () => this.saveTeamInfo());
-        document.getElementById('btn-add-player').addEventListener('click', () => this.addPlayer());
         document.getElementById('btn-delete-team').addEventListener('click', () => this.deleteTeam());
+
+        // Roster month navigation
+        document.getElementById('roster-month-prev').addEventListener('click', () => this.changeRosterMonth(-1));
+        document.getElementById('roster-month-next').addEventListener('click', () => this.changeRosterMonth(1));
+
+        // Roster add player
+        document.getElementById('roster-btn-add').addEventListener('click', () => this.addPlayerToRoster());
+        document.getElementById('roster-new-player').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.addPlayerToRoster();
+        });
+
+        // Copy previous month roster
+        document.getElementById('btn-copy-prev-month').addEventListener('click', () => this.copyPrevMonthRoster());
 
         // Refresh button
         document.getElementById('btn-refresh').addEventListener('click', () => this.refreshScores());
@@ -397,10 +397,14 @@ const App = {
     // ==========================================
     openTeamDetail(teamId) {
         this.currentDetailTeamId = teamId;
+        this.rosterMonth = this.currentMonth; // start on current score month
         const team = DataStore.getTeam(teamId);
         if (!team) return;
-        UI.renderTeamDetail(team, this.currentMonth);
+        document.getElementById('modal-team-name').textContent = team.name;
+        document.getElementById('modal-team-score').textContent =
+            DataStore.getTeamScore(teamId, this.currentMonth).toFixed(2);
         this.switchModalTab('roster');
+        this.renderRosterMonth();
         document.getElementById('modal-overlay').classList.add('active');
         document.body.style.overflow = 'hidden';
     },
@@ -423,11 +427,10 @@ const App = {
         if (!this.currentDetailTeamId) return;
         const team = DataStore.getTeam(this.currentDetailTeamId);
         if (!team) return;
-        UI.renderTeamDetail(team, this.currentMonth);
-        const manageTab = document.querySelector('.modal-tab[data-tab="manage"]');
-        if (manageTab && manageTab.classList.contains('active')) {
-            UI.renderManagePlayerList(team, this.currentMonth);
-        }
+        document.getElementById('modal-team-name').textContent = team.name;
+        document.getElementById('modal-team-score').textContent =
+            DataStore.getTeamScore(this.currentDetailTeamId, this.currentMonth).toFixed(2);
+        this.renderRosterMonth();
     },
 
     switchModalTab(tabName) {
@@ -437,21 +440,111 @@ const App = {
             c.classList.toggle('active', c.id === `tab-content-${tabName}`));
         if (tabName === 'manage' && this.currentDetailTeamId) {
             const team = DataStore.getTeam(this.currentDetailTeamId);
-            if (team) UI.renderManagePlayerList(team, this.currentMonth);
+            if (team) document.getElementById('edit-team-name').value = team.name;
         }
     },
 
     // ==========================================
-    // Team CRUD (with Firebase sync)
+    // Roster Month Navigation
+    // ==========================================
+    changeRosterMonth(delta) {
+        const idx = SEASON_MONTHS.indexOf(this.rosterMonth);
+        const newIdx = Math.max(0, Math.min(SEASON_MONTHS.length - 1, idx + delta));
+        this.rosterMonth = SEASON_MONTHS[newIdx];
+        this.renderRosterMonth();
+    },
+
+    renderRosterMonth() {
+        if (!this.currentDetailTeamId) return;
+        const monthIdx = SEASON_MONTHS.indexOf(this.rosterMonth);
+        const monthNum = parseInt(this.rosterMonth.split('-')[1]);
+
+        // Update month label
+        document.getElementById('roster-month-label').textContent = `${monthNum}월`;
+
+        // Arrow disabled state
+        document.getElementById('roster-month-prev').disabled = (monthIdx === 0);
+        document.getElementById('roster-month-next').disabled = (monthIdx === SEASON_MONTHS.length - 1);
+
+        // Show/hide copy prev month button
+        document.getElementById('roster-copy-row').style.display = monthIdx === 0 ? 'none' : 'flex';
+
+        // Render player list
+        const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth);
+        const scores = DataStore.getScores(this.rosterMonth);
+        const listEl = document.getElementById('roster-player-list');
+        const emptyEl = document.getElementById('roster-empty');
+
+        if (roster.length === 0) {
+            listEl.innerHTML = '';
+            emptyEl.style.display = 'block';
+        } else {
+            emptyEl.style.display = 'none';
+            listEl.innerHTML = roster.map((name, i) => {
+                const score = scores[name] || 0;
+                const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
+                return `
+                    <div class="player-row-simple">
+                        <span class="player-num">${i + 1}</span>
+                        <span class="player-name-simple">${name}</span>
+                        <span class="player-score-simple ${scoreClass}">${score.toFixed(2)}</span>
+                        <button class="player-action-btn danger" onclick="App.removePlayerFromRoster('${name}')" title="삭제">✕</button>
+                    </div>`;
+            }).join('');
+        }
+    },
+
+    addPlayerToRoster() {
+        if (!this.currentDetailTeamId) return;
+        const input = document.getElementById('roster-new-player');
+        const name = input.value.trim();
+        if (!name) return;
+        const added = DataStore.addPlayer(this.currentDetailTeamId, this.rosterMonth, name);
+        if (!added) {
+            this.showToast(`${name} 선수는 이미 ${parseInt(this.rosterMonth.split('-')[1])}월 명단에 있습니다`);
+        } else {
+            this.syncToFirebase('updateRoster', this.currentDetailTeamId);
+            this.renderRosterMonth();
+            this.refreshDashboard();
+        }
+        input.value = '';
+        input.focus();
+    },
+
+    removePlayerFromRoster(playerName) {
+        if (!this.currentDetailTeamId) return;
+        DataStore.removePlayer(this.currentDetailTeamId, this.rosterMonth, playerName);
+        this.syncToFirebase('updateRoster', this.currentDetailTeamId);
+        this.renderRosterMonth();
+        this.refreshDashboard();
+    },
+
+    copyPrevMonthRoster() {
+        if (!this.currentDetailTeamId) return;
+        const idx = SEASON_MONTHS.indexOf(this.rosterMonth);
+        if (idx <= 0) return;
+        const prevMonth = SEASON_MONTHS[idx - 1];
+        const prevRoster = DataStore.getMonthRoster(this.currentDetailTeamId, prevMonth);
+        if (prevRoster.length === 0) {
+            this.showToast('이전 달 명단이 비어 있습니다');
+            return;
+        }
+        const monthNum = parseInt(this.rosterMonth.split('-')[1]);
+        if (confirm(`${parseInt(prevMonth.split('-')[1])}월 명단(${prevRoster.length}명)을 ${monthNum}월로 복사할까요?`)) {
+            DataStore.setMonthRoster(this.currentDetailTeamId, this.rosterMonth, [...prevRoster]);
+            this.syncToFirebase('updateRoster', this.currentDetailTeamId);
+            this.renderRosterMonth();
+            this.showToast(`${monthNum}월 명단에 ${prevRoster.length}명이 복사되었습니다`);
+        }
+    },
+
+    // ==========================================
+    // Team CRUD
     // ==========================================
     createTeam() {
         const name = document.getElementById('add-team-name').value.trim();
-        const owner = document.getElementById('add-team-owner').value.trim();
-        if (!name || !owner) {
-            this.showToast('팀 이름과 오너 이름을 입력해주세요');
-            return;
-        }
-        const team = DataStore.addTeam(name, owner);
+        if (!name) { this.showToast('팀 이름을 입력해주세요'); return; }
+        const team = DataStore.addTeam(name);
         this.syncToFirebase('addTeam', team);
         this.closeAddTeamModal();
         this.refreshDashboard();
@@ -462,17 +555,13 @@ const App = {
     saveTeamInfo() {
         if (!this.currentDetailTeamId) return;
         const name = document.getElementById('edit-team-name').value.trim();
-        const owner = document.getElementById('edit-team-owner').value.trim();
-        if (!name || !owner) {
-            this.showToast('이름을 입력해주세요');
-            return;
-        }
-        DataStore.updateTeam(this.currentDetailTeamId, { name, owner });
-        this.syncToFirebase('updateTeam', this.currentDetailTeamId, { name, owner });
-        this.refreshTeamDetail();
+        if (!name) { this.showToast('팀 이름을 입력해주세요'); return; }
+        DataStore.updateTeam(this.currentDetailTeamId, { name });
+        this.syncToFirebase('updateTeam', this.currentDetailTeamId, { name });
+        document.getElementById('modal-team-name').textContent = name;
         this.refreshDashboard();
         this.refreshTeamsGrid();
-        this.showToast('팀 정보가 저장되었습니다');
+        this.showToast('팀 이름이 저장되었습니다');
     },
 
     deleteTeam() {
@@ -487,29 +576,6 @@ const App = {
             this.refreshTeamsGrid();
             this.showToast(`${team.name} 팀이 삭제되었습니다`);
         }
-    },
-
-    // ==========================================
-    // Player Management (with Firebase sync)
-    // ==========================================
-    addPlayer() {
-        if (!this.currentDetailTeamId) return;
-        const name = document.getElementById('new-player-name').value.trim();
-        const position = document.getElementById('new-player-position').value;
-        const role = document.getElementById('new-player-role').value;
-        if (!name) { this.showToast('선수 이름을 입력해주세요'); return; }
-        if (!role) { this.showToast('역할을 선택해주세요'); return; }
-        const isBench = role.startsWith('BN');
-        DataStore.addPlayer(this.currentDetailTeamId, {
-            name, realPos: position || '', role, active: !isBench
-        });
-        this.syncToFirebase('updatePlayers', this.currentDetailTeamId);
-        document.getElementById('new-player-name').value = '';
-        document.getElementById('new-player-position').value = '';
-        document.getElementById('new-player-role').value = '';
-        this.refreshTeamDetail();
-        this.refreshDashboard();
-        this.showToast(`${name} 선수가 추가되었습니다`);
     },
 
     // ==========================================
