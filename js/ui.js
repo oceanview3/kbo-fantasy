@@ -170,7 +170,7 @@ const UI = {
             'C': 'C', '1B': '1B', '2B': '2B', '3B': '3B', 'SS': 'SS',
             'LF': 'LF', 'CF': 'CF', 'RF': 'RF', 'DH': 'DH',
             'SP1': '1선발', 'SP2': '2선발', 'SP3': '3선발', 'SP4': '4선발', 'SP5': '5선발',
-            'RP1': '1릴리프', 'RP2': '2릴리프', 'RP3': '3릴리프', 'RP4': '4릴리프', 'RP5': '5릴리프',
+            'RP1': '1불펜', 'RP2': '2불펜', 'RP3': '3불펜', 'RP4': '4불펜', 'RP5': '5불펜',
             'BN1': '후보1', 'BN2': '후보2', 'BN3': '후보3', 'BN4': '후보4'
         };
         return labels[role] || role;
@@ -237,7 +237,7 @@ const UI = {
 
         document.getElementById('roster-rp').innerHTML =
             rp.length ? rp.map(p => this.renderPlayerRow(p, month, false)).join('') :
-            '<div class="empty-state"><div class="empty-desc">릴리프 투수가 없습니다</div></div>';
+            '<div class="empty-state"><div class="empty-desc">불펜 투수가 없습니다</div></div>';
 
         // Bench tab
         document.getElementById('bench-players').innerHTML =
