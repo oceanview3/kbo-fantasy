@@ -1,7 +1,7 @@
 """
 웰컴톱랭킹 KBO 선수 점수 스크래퍼
-- div.chartView table 에서 순위/선수명/팀/점수 추출
-- URL 파라미터로 타자/투수 전환 (&position=T / &position=1)
+- table tbody tr 에서 순위/선수명/팀/점수 추출
+- URL 파라미터: position=T(타자), position=1(투수), curPage=N
 - Firebase Firestore REST API로 실시간 업데이트
 """
 
@@ -17,7 +17,6 @@ from playwright.async_api import async_playwright
 BASE_URL = "https://www.welcometopranking.com/baseball/"
 DATA_DIR = Path(__file__).parent.parent / "data"
 
-# Firebase config
 FIREBASE_PROJECT_ID = "kbo-fantasy-7616b"
 FIRESTORE_URL = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents"
 
@@ -29,73 +28,77 @@ async def scrape_position(page, search_date, position):
     """
     pos_name = "타자" if position == "T" else "투수"
     players = {}
-    
+
     for pg in range(1, 20):
         url = (f"{BASE_URL}?p=chart&searchType=MONTHLY"
                f"&searchDate={search_date}&position={position}&curPage={pg}")
+
+        await page.goto(url, timeout=30000)
         
-        if pg == 1:
-            print(f"  [{pos_name}] Loading...")
-        
-        await page.goto(url, wait_until="networkidle", timeout=30000)
-        await page.wait_for_timeout(2000)
-        
-        # Find rows in the chart table
-        rows = page.locator("div.chartView table tbody tr")
-        row_count = await rows.count()
-        
-        if row_count == 0:
-            # Try alternative: just any table tbody tr
-            rows = page.locator("table tbody tr")
-            row_count = await rows.count()
-        
-        if row_count == 0:
+        # Wait for table rows to appear (up to 10 seconds)
+        try:
+            await page.wait_for_selector("table tbody tr td", timeout=10000)
+        except:
             if pg == 1:
-                print(f"  [{pos_name}] No rows found on page {pg}")
-            break
+                print(f"  [{pos_name}] Waiting for data... trying longer wait")
+                await page.wait_for_timeout(5000)
+                # Check again
+                count = await page.locator("table tbody tr").count()
+                if count == 0:
+                    print(f"  [{pos_name}] Still no data after extended wait")
+                    break
         
+        await page.wait_for_timeout(1000)
+
+        # Get all table rows
+        rows = page.locator("table tbody tr")
+        row_count = await rows.count()
+
+        if row_count == 0:
+            break
+
         page_count = 0
         for i in range(row_count):
             try:
                 row = rows.nth(i)
                 cells = row.locator("td")
                 cell_count = await cells.count()
-                
+
                 if cell_count < 4:
                     continue
-                
+
+                # Column order: [순위, 선수명, 구단, 톱랭킹포인트, ...]
                 rank_text = (await cells.nth(0).inner_text()).strip()
-                name_text = (await cells.nth(1).inner_text()).strip()
-                # team = (await cells.nth(2).inner_text()).strip()
+                name_raw = (await cells.nth(1).inner_text()).strip()
                 score_text = (await cells.nth(3).inner_text()).strip()
-                
-                # Clean name (remove newlines, extra spaces)
-                name = name_text.split('\n')[0].strip()
-                
+
+                # Clean name (get first line only)
+                name = name_raw.split('\n')[0].strip()
+
                 # Parse rank
                 try:
                     rank = int(rank_text)
-                except:
+                except ValueError:
                     continue
-                
+
                 # Parse score
                 try:
                     score = float(score_text.replace(',', ''))
-                except:
+                except ValueError:
                     score = 0.0
-                
+
                 if name and rank > 0:
                     players[name] = score
                     page_count += 1
-                    
-            except Exception as e:
+
+            except Exception:
                 continue
-        
+
         print(f"  [{pos_name}] Page {pg}: {page_count} players")
-        
-        if row_count < 20:  # Less than full page = last page
+
+        if row_count < 20:
             break
-    
+
     print(f"  [{pos_name}] Total: {len(players)} players")
     return players
 
@@ -114,15 +117,13 @@ async def scrape_monthly_scores(year=2026, month=3):
             locale="ko-KR"
         )
         page = await context.new_page()
-        
+
         all_players = {}
 
-        # Scrape batters (position=T)
         print("\n[타자 랭킹]")
         batters = await scrape_position(page, search_date, "T")
         all_players.update(batters)
 
-        # Scrape pitchers (position=1)
         print("\n[투수 랭킹]")
         pitchers = await scrape_position(page, search_date, "1")
         all_players.update(pitchers)
@@ -134,7 +135,6 @@ async def scrape_monthly_scores(year=2026, month=3):
 
 
 def save_scores_local(scores, year, month):
-    """Save scores to local JSON file"""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     month_key = f"{year}-{month:02d}"
     filename = DATA_DIR / f"scores_{month_key}.json"
@@ -150,11 +150,9 @@ def save_scores_local(scores, year, month):
 
 
 def upload_to_firebase(scores, year, month):
-    """Upload scores to Firebase Firestore via REST API"""
     month_key = f"{year}-{month:02d}"
     doc_url = f"{FIRESTORE_URL}/scores/{month_key}"
 
-    # Build Firestore document
     player_fields = {}
     for name, score in scores.items():
         player_fields[name] = {"doubleValue": score}
@@ -177,9 +175,7 @@ def upload_to_firebase(scores, year, month):
 
     data = json.dumps(doc).encode("utf-8")
     req = urllib.request.Request(
-        doc_url,
-        data=data,
-        method="PATCH",
+        doc_url, data=data, method="PATCH",
         headers={"Content-Type": "application/json"}
     )
 
@@ -204,7 +200,6 @@ async def main():
         save_scores_local(scores, year, month)
         upload_to_firebase(scores, year, month)
 
-        # Print top 10
         print(f"\n{'='*50}")
         print(f"Top 10")
         print(f"{'='*50}")
