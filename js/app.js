@@ -220,12 +220,6 @@ const App = {
         document.getElementById('roster-month-prev').addEventListener('click', () => this.changeRosterMonth(-1));
         document.getElementById('roster-month-next').addEventListener('click', () => this.changeRosterMonth(1));
 
-        // Roster add player
-        document.getElementById('roster-btn-add').addEventListener('click', () => this.addPlayerToRoster());
-        document.getElementById('roster-new-player').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') this.addPlayerToRoster();
-        });
-
         // Copy previous month roster
         document.getElementById('btn-copy-prev-month').addEventListener('click', () => this.copyPrevMonthRoster());
 
@@ -459,64 +453,63 @@ const App = {
         const monthIdx = SEASON_MONTHS.indexOf(this.rosterMonth);
         const monthNum = parseInt(this.rosterMonth.split('-')[1]);
 
-        // Update month label
         document.getElementById('roster-month-label').textContent = `${monthNum}월`;
-
-        // Arrow disabled state
         document.getElementById('roster-month-prev').disabled = (monthIdx === 0);
         document.getElementById('roster-month-next').disabled = (monthIdx === SEASON_MONTHS.length - 1);
-
-        // Show/hide copy prev month button
         document.getElementById('roster-copy-row').style.display = monthIdx === 0 ? 'none' : 'flex';
 
-        // Render player list
-        const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth);
+        const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth) || {};
         const scores = DataStore.getScores(this.rosterMonth);
         const listEl = document.getElementById('roster-player-list');
-        const emptyEl = document.getElementById('roster-empty');
 
-        if (roster.length === 0) {
-            listEl.innerHTML = '';
-            emptyEl.style.display = 'block';
-        } else {
-            emptyEl.style.display = 'none';
-            listEl.innerHTML = roster.map((name, i) => {
-                const score = scores[name] || 0;
+        let html = '';
+        SLOT_GROUPS.forEach(group => {
+            html += `<div class="roster-group">
+                <h4 class="roster-group-title">${group.label}</h4>
+                <div class="roster-slot-list">`;
+            
+            group.slots.forEach(slot => {
+                const playerName = roster[slot.key] || '';
+                const score = playerName ? (scores[playerName] || 0) : 0;
                 const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
-                return `
-                    <div class="player-row-simple">
-                        <span class="player-num">${i + 1}</span>
-                        <span class="player-name-simple">${name}</span>
-                        <span class="player-score-simple ${scoreClass}">${score.toFixed(2)}</span>
-                        <button class="player-action-btn danger" onclick="App.removePlayerFromRoster('${name}')" title="삭제">✕</button>
+                
+                html += `
+                    <div class="slot-row">
+                        <span class="slot-label">${slot.label}</span>
+                        <div class="slot-content">
+                            <input type="text" class="input slot-input" 
+                                placeholder="선수 이름" 
+                                value="${playerName}"
+                                data-slot="${slot.key}"
+                                onblur="App.handleSlotInput(this)"
+                                onkeydown="if(event.key==='Enter') this.blur();">
+                        </div>
+                        ${playerName ? `<span class="slot-score ${scoreClass}">${score.toFixed(2)}</span>` : '<span class="slot-score score-zero">-</span>'}
                     </div>`;
-            }).join('');
-        }
+            });
+            
+            html += `</div></div>`;
+        });
+        
+        listEl.innerHTML = html;
     },
 
-    addPlayerToRoster() {
+    handleSlotInput(inputEl) {
         if (!this.currentDetailTeamId) return;
-        const input = document.getElementById('roster-new-player');
-        const name = input.value.trim();
-        if (!name) return;
-        const added = DataStore.addPlayer(this.currentDetailTeamId, this.rosterMonth, name);
-        if (!added) {
-            this.showToast(`${name} 선수는 이미 ${parseInt(this.rosterMonth.split('-')[1])}월 명단에 있습니다`);
-        } else {
-            this.syncToFirebase('updateRoster', this.currentDetailTeamId);
-            this.renderRosterMonth();
-            this.refreshDashboard();
-        }
-        input.value = '';
-        input.focus();
-    },
+        const slotKey = inputEl.dataset.slot;
+        const newName = inputEl.value.trim();
+        const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth) || {};
+        const oldName = roster[slotKey] || '';
 
-    removePlayerFromRoster(playerName) {
-        if (!this.currentDetailTeamId) return;
-        DataStore.removePlayer(this.currentDetailTeamId, this.rosterMonth, playerName);
+        if (newName === oldName) return; // No change
+
+        DataStore.setSlot(this.currentDetailTeamId, this.rosterMonth, slotKey, newName);
         this.syncToFirebase('updateRoster', this.currentDetailTeamId);
         this.renderRosterMonth();
-        this.refreshDashboard();
+        this.refreshDashboard(); // Update scores behind modal
+        
+        if (newName) this.showToast(`${newName} 선수가 등록되었습니다`);
+        else this.showToast(`등록 해제되었습니다`);
     },
 
     copyPrevMonthRoster() {
@@ -524,17 +517,20 @@ const App = {
         const idx = SEASON_MONTHS.indexOf(this.rosterMonth);
         if (idx <= 0) return;
         const prevMonth = SEASON_MONTHS[idx - 1];
-        const prevRoster = DataStore.getMonthRoster(this.currentDetailTeamId, prevMonth);
-        if (prevRoster.length === 0) {
+        const prevRoster = DataStore.getMonthRoster(this.currentDetailTeamId, prevMonth) || {};
+        const prevCount = Object.keys(prevRoster).filter(k => prevRoster[k]).length;
+        
+        if (prevCount === 0) {
             this.showToast('이전 달 명단이 비어 있습니다');
             return;
         }
         const monthNum = parseInt(this.rosterMonth.split('-')[1]);
-        if (confirm(`${parseInt(prevMonth.split('-')[1])}월 명단(${prevRoster.length}명)을 ${monthNum}월로 복사할까요?`)) {
-            DataStore.setMonthRoster(this.currentDetailTeamId, this.rosterMonth, [...prevRoster]);
+        if (confirm(`${parseInt(prevMonth.split('-')[1])}월 명단(${prevCount}명)을 ${monthNum}월로 복사할까요?\n진행 시 이번 달 등록상태는 덮어씌워집니다.`)) {
+            DataStore.setMonthRoster(this.currentDetailTeamId, this.rosterMonth, { ...prevRoster });
             this.syncToFirebase('updateRoster', this.currentDetailTeamId);
             this.renderRosterMonth();
-            this.showToast(`${monthNum}월 명단에 ${prevRoster.length}명이 복사되었습니다`);
+            this.refreshDashboard();
+            this.showToast(`${monthNum}월 명단에 ${prevCount}명이 복사되었습니다`);
         }
     },
 

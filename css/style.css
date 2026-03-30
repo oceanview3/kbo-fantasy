@@ -937,60 +937,93 @@ body {
     padding: 24px 0 8px;
 }
 
-/* Player row simplified (name + score + delete) */
-.player-row-simple {
+/* Roster Slots CSS */
+.roster-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.roster-group {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.roster-group-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    margin: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.roster-slot-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.slot-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
     transition: var(--transition);
 }
 
-.player-row-simple:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: var(--border-hover);
+.slot-row:last-child {
+    border-bottom: none;
 }
 
-.player-num {
-    font-size: 11px;
+.slot-row:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.slot-label {
+    font-size: 12px;
+    font-weight: 600;
     color: var(--text-muted);
-    min-width: 20px;
+    min-width: 48px;
     text-align: right;
-    font-variant-numeric: tabular-nums;
 }
 
-.player-name-simple {
+.slot-content {
     flex: 1;
+}
+
+.slot-input {
+    width: 100%;
+    background: transparent;
+    border: 1px dashed transparent;
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: var(--transition);
 }
 
-.player-score-simple {
+.slot-input::placeholder {
+    color: rgba(255, 255, 255, 0.15);
+    font-style: italic;
+}
+
+.slot-input:hover, .slot-input:focus {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: var(--border-hover);
+    outline: none;
+}
+
+.slot-score {
     font-size: 14px;
     font-weight: 700;
     min-width: 56px;
     text-align: right;
     font-variant-numeric: tabular-nums;
-}
-
-.roster-add-row {
-    display: flex;
-    gap: 8px;
-    margin-top: 14px;
-}
-
-.roster-add-row .input {
-    flex: 1;
-    font-size: 13px;
-    padding: 9px 12px;
-}
-
-.btn-sm {
-    padding: 8px 14px;
-    font-size: 13px;
 }
 
 .roster-copy-row {
