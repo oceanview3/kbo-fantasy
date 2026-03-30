@@ -248,22 +248,70 @@ const App = {
         const btn = document.getElementById('btn-refresh');
         btn.classList.add('refreshing');
 
+        // Show progress overlay
+        const overlay = document.getElementById('progress-overlay');
+        const statusEl = document.getElementById('progress-status');
+        const barFill = document.getElementById('progress-bar-fill');
+        const percentEl = document.getElementById('progress-percent');
+
+        overlay.classList.add('active');
+        barFill.style.width = '0%';
+        percentEl.textContent = '0%';
+        statusEl.textContent = '준비 중...';
+
+        // Set up progress callback
+        Scraper.onProgress = (percent, message) => {
+            barFill.style.width = percent + '%';
+            percentEl.textContent = percent + '%';
+            statusEl.textContent = message;
+        };
+
         try {
-            if (this.useFirebase) {
-                await this.downloadFromFirebase();
-                this.refreshDashboard();
-                if (this.currentView === 'teams') this.refreshTeamsGrid();
-                if (this.currentDetailTeamId) this.refreshTeamDetail();
-                this.updateLastUpdated();
-                this.showToast('점수가 업데이트되었습니다');
-            } else {
-                this.showToast('서버에 연결되어 있지 않습니다');
+            // Parse current month
+            const parts = this.currentMonth.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+
+            // Scrape from welcometopranking
+            const scores = await Scraper.scrapeAll(year, month);
+            const playerCount = Object.keys(scores).length;
+
+            if (playerCount === 0) {
+                throw new Error('수집된 선수가 없습니다');
             }
+
+            // Upload to Firebase
+            if (this.useFirebase) {
+                await Scraper.uploadToFirebase(this.db, scores, this.currentMonth);
+            }
+
+            // Update local data
+            const data = DataStore.load();
+            data.scores[this.currentMonth] = scores;
+            DataStore.save(data);
+
+            // Refresh UI
+            this.refreshDashboard();
+            if (this.currentView === 'teams') this.refreshTeamsGrid();
+            if (this.currentDetailTeamId) this.refreshTeamDetail();
+            await this.updateLastUpdated();
+
+            statusEl.textContent = `${playerCount}명 선수 점수 업데이트 완료!`;
+
+            // Keep overlay for a moment to show completion
+            await new Promise(r => setTimeout(r, 1200));
+
+            this.showToast(`${playerCount}명 점수 업데이트 완료!`);
+
         } catch (e) {
             console.error('[App] Refresh failed:', e);
-            this.showToast('업데이트 실패');
+            statusEl.textContent = '오류: ' + e.message;
+            await new Promise(r => setTimeout(r, 2000));
+            this.showToast('업데이트 실패: ' + e.message);
         } finally {
-            setTimeout(() => btn.classList.remove('refreshing'), 600);
+            overlay.classList.remove('active');
+            btn.classList.remove('refreshing');
+            barFill.style.width = '0%';
         }
     },
 
