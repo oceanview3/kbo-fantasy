@@ -1,0 +1,53 @@
+name: Scrape KBO Scores
+
+on:
+  # Run daily at 09:00 KST (00:00 UTC) - after games end
+  schedule:
+    - cron: '0 0 * * *'
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Year (e.g., 2026)'
+        required: false
+        default: ''
+      month:
+        description: 'Month (e.g., 3)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r scraper/requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run scraper
+        run: |
+          cd scraper
+          if [ -n "${{ github.event.inputs.year }}" ] && [ -n "${{ github.event.inputs.month }}" ]; then
+            python scrape.py ${{ github.event.inputs.year }} ${{ github.event.inputs.month }}
+          else
+            python scrape.py
+          fi
+
+      - name: Commit updated scores
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add data/
+          git diff --staged --quiet || git commit -m "📊 Update scores $(date +'%Y-%m-%d %H:%M')"
+          git push

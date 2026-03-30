@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 백투백 드래프트 | KBO 판타지 리그</title>
+    <meta name="description" content="지인들끼리 가상 KBO 팀을 구성하여 웰컴톱랭킹 점수로 대결하는 판타지 리그">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo" id="logo-home">
+                <span class="logo-icon">⚾</span>
+                <div class="logo-text">
+                    <span class="logo-title">2026 백투백 드래프트</span>
+                    <span class="logo-subtitle">KBO 판타지 리그</span>
+                </div>
+            </div>
+            <nav class="header-nav">
+                <button class="nav-btn active" data-view="dashboard" id="nav-dashboard">
+                    <span class="nav-icon">🏆</span> 순위표
+                </button>
+                <button class="nav-btn" data-view="teams" id="nav-teams">
+                    <span class="nav-icon">👥</span> 팀 관리
+                </button>
+            </nav>
+            <div class="month-selector" id="month-selector">
+                <button class="month-arrow" id="month-prev">‹</button>
+                <span class="month-display" id="month-display">2026년 3월</span>
+                <button class="month-arrow" id="month-next">›</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard View -->
+        <section class="view active" id="view-dashboard">
+            <div class="dashboard-header">
+                <h1 class="section-title">
+                    <span class="title-accent">🏆</span> 팀 순위
+                    <span class="title-month" id="dashboard-month">3월</span>
+                </h1>
+                <p class="section-desc">웰컴톱랭킹 월간 누적 포인트 기준</p>
+            </div>
+            <div class="podium-section" id="podium-section">
+                <!-- Top 3 podium rendered by JS -->
+            </div>
+            <div class="ranking-table-wrapper">
+                <table class="ranking-table" id="ranking-table">
+                    <thead>
+                        <tr>
+                            <th class="rank-col">순위</th>
+                            <th class="team-col">팀</th>
+                            <th class="owner-col">오너</th>
+                            <th class="score-col">총점</th>
+                            <th class="players-col">출전선수</th>
+                            <th class="detail-col"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ranking-tbody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Teams Management View -->
+        <section class="view" id="view-teams">
+            <div class="teams-header">
+                <h1 class="section-title">
+                    <span class="title-accent">👥</span> 팀 관리
+                </h1>
+                <button class="btn btn-primary" id="btn-add-team">
+                    <span>+</span> 새 팀 추가
+                </button>
+            </div>
+            <div class="teams-grid" id="teams-grid">
+                <!-- Team cards rendered by JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Team Detail Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="team-modal">
+            <div class="modal-header">
+                <div class="modal-team-info">
+                    <h2 class="modal-team-name" id="modal-team-name">팀 이름</h2>
+                    <span class="modal-team-owner" id="modal-team-owner">오너</span>
+                </div>
+                <div class="modal-team-score">
+                    <span class="modal-score-label">월간 총점</span>
+                    <span class="modal-score-value" id="modal-team-score">0.00</span>
+                </div>
+                <button class="modal-close" id="modal-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-tabs">
+                    <button class="modal-tab active" data-tab="roster" id="tab-roster">📋 출전 명단</button>
+                    <button class="modal-tab" data-tab="bench" id="tab-bench">🪑 벤치</button>
+                    <button class="modal-tab" data-tab="manage" id="tab-manage">⚙️ 편집</button>
+                </div>
+                <div class="modal-tab-content active" id="tab-content-roster">
+                    <div class="roster-section">
+                        <h3 class="roster-title">⚾ 타자</h3>
+                        <div class="player-list" id="roster-batters"></div>
+                    </div>
+                    <div class="roster-section">
+                        <h3 class="roster-title">⚡ 선발 투수</h3>
+                        <div class="player-list" id="roster-sp"></div>
+                    </div>
+                    <div class="roster-section">
+                        <h3 class="roster-title">🔥 릴리프 투수</h3>
+                        <div class="player-list" id="roster-rp"></div>
+                    </div>
+                </div>
+                <div class="modal-tab-content" id="tab-content-bench">
+                    <div class="player-list" id="bench-players"></div>
+                </div>
+                <div class="modal-tab-content" id="tab-content-manage">
+                    <div class="manage-section">
+                        <h3 class="manage-title">팀 정보</h3>
+                        <div class="form-group">
+                            <label>팀 이름</label>
+                            <input type="text" id="edit-team-name" class="input" placeholder="팀 이름">
+                        </div>
+                        <div class="form-group">
+                            <label>오너</label>
+                            <input type="text" id="edit-team-owner" class="input" placeholder="오너 이름">
+                        </div>
+                        <button class="btn btn-primary" id="btn-save-team-info">저장</button>
+                    </div>
+                    <hr class="divider">
+                    <div class="manage-section">
+                        <h3 class="manage-title">선수 추가</h3>
+                        <div class="form-row">
+                            <input type="text" id="new-player-name" class="input" placeholder="선수 이름">
+                            <select id="new-player-position" class="select">
+                                <option value="">포지션</option>
+                                <optgroup label="타자">
+                                    <option value="C">C</option>
+                                    <option value="1B">1B</option>
+                                    <option value="2B">2B</option>
+                                    <option value="3B">3B</option>
+                                    <option value="SS">SS</option>
+                                    <option value="LF">LF</option>
+                                    <option value="CF">CF</option>
+                                    <option value="RF">RF</option>
+                                    <option value="DH">DH</option>
+                                </optgroup>
+                                <optgroup label="투수">
+                                    <option value="SP">선발 투수 (SP)</option>
+                                    <option value="RP">릴리프 투수 (RP)</option>
+                                </optgroup>
+                            </select>
+                            <select id="new-player-role" class="select">
+                                <option value="">역할</option>
+                                <optgroup label="타자 스팟">
+                                    <option value="C">포수(C)</option>
+                                    <option value="1B">1루수</option>
+                                    <option value="2B">2루수</option>
+                                    <option value="3B">3루수</option>
+                                    <option value="SS">유격수</option>
+                                    <option value="LF">좌익수</option>
+                                    <option value="CF">중견수</option>
+                                    <option value="RF">우익수</option>
+                                    <option value="DH">지명타자</option>
+                                </optgroup>
+                                <optgroup label="투수">
+                                    <option value="SP1">1선발</option>
+                                    <option value="SP2">2선발</option>
+                                    <option value="SP3">3선발</option>
+                                    <option value="SP4">4선발</option>
+                                    <option value="SP5">5선발</option>
+                                    <option value="RP1">1릴리프</option>
+                                    <option value="RP2">2릴리프</option>
+                                    <option value="RP3">3릴리프</option>
+                                    <option value="RP4">4릴리프</option>
+                                    <option value="RP5">5릴리프</option>
+                                </optgroup>
+                                <optgroup label="후보">
+                                    <option value="BN1">후보 1</option>
+                                    <option value="BN2">후보 2</option>
+                                    <option value="BN3">후보 3</option>
+                                    <option value="BN4">후보 4</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="btn-add-player">선수 추가</button>
+                    </div>
+                    <hr class="divider">
+                    <div class="manage-section">
+                        <h3 class="manage-title danger">위험 구역</h3>
+                        <button class="btn btn-danger" id="btn-delete-team">팀 삭제</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Team Modal -->
+    <div class="modal-overlay" id="add-team-overlay">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h2 class="modal-team-name">새 팀 추가</h2>
+                <button class="modal-close" id="add-team-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>팀 이름</label>
+                    <input type="text" id="add-team-name" class="input" placeholder="예: 빌맙스">
+                </div>
+                <div class="form-group">
+                    <label>오너 이름</label>
+                    <input type="text" id="add-team-owner" class="input" placeholder="예: 상민">
+                </div>
+                <button class="btn btn-primary btn-full" id="btn-create-team">팀 생성</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span class="toast-message" id="toast-message"></span>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
