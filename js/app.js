@@ -5,7 +5,6 @@
 
 const App = {
     currentMonth: null,
-    currentView: 'dashboard',
     currentDetailTeamId: null,
     rosterMonth: null,   // month currently shown in the team detail roster
     isEditingRoster: false, // track edit mode
@@ -181,13 +180,8 @@ const App = {
     // Event Bindings
     // ==========================================
     bindEvents() {
-        // Navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchView(btn.dataset.view));
-        });
-
         document.getElementById('logo-home').addEventListener('click', () => {
-            this.switchView('dashboard');
+            if (this.currentDetailTeamId) this.closeTeamDetail();
         });
 
         // Month navigation
@@ -324,21 +318,6 @@ const App = {
     },
 
     // ==========================================
-    // Views
-    // ==========================================
-    switchView(viewName) {
-        this.currentView = viewName;
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewName);
-        });
-        document.querySelectorAll('.view').forEach(view => {
-            view.classList.toggle('active', view.id === `view-${viewName}`);
-        });
-        if (viewName === 'dashboard') this.refreshDashboard();
-        if (viewName === 'teams') this.refreshTeamsGrid();
-    },
-
-    // ==========================================
     // Dashboard
     // ==========================================
     refreshDashboard() {
@@ -347,11 +326,6 @@ const App = {
             UI.formatMonthShort(this.currentMonth);
         UI.renderPodium(teams, this.currentMonth);
         UI.renderRankingTable(teams, this.currentMonth);
-    },
-
-    refreshTeamsGrid() {
-        const teams = DataStore.getTeams();
-        UI.renderTeamsGrid(teams, this.currentMonth);
     },
 
     // ==========================================
@@ -366,8 +340,7 @@ const App = {
         this.currentMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
         DataStore.setCurrentMonth(this.currentMonth);
         this.updateMonthDisplay();
-        if (this.currentView === 'dashboard') this.refreshDashboard();
-        if (this.currentView === 'teams') this.refreshTeamsGrid();
+        this.refreshDashboard();
         if (this.currentDetailTeamId) this.refreshTeamDetail();
     },
 
