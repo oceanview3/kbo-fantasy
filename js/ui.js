@@ -36,7 +36,6 @@ const UI = {
                 <div class="podium-rank">${i + 1}</div>
                 <div class="podium-team-name">${team.name}</div>
                 <div class="podium-score">${team.score.toFixed(2)}</div>
-                <div class="podium-score-label">톱랭킹 포인트</div>
             </div>
         `).join('');
 
@@ -63,6 +62,20 @@ const UI = {
                 };
             })
             .sort((a, b) => b.score - a.score);
+
+        // Update headers with month names
+        const curMonthNum = parseInt(month.split('-')[1]);
+        const monthIdx = SEASON_MONTHS.indexOf(month);
+        const prevMonthStr = monthIdx > 0 ? SEASON_MONTHS[monthIdx - 1] : null;
+        const prevMonthNum = prevMonthStr ? parseInt(prevMonthStr.split('-')[1]) : null;
+
+        const curHeader = document.getElementById('col-current-month');
+        if (curHeader) curHeader.textContent = `${curMonthNum}월 점수`;
+
+        const prevHeader = document.getElementById('col-prev-month');
+        if (prevHeader) {
+            prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월 점수` : '-';
+        }
 
         if (!sorted.length) {
             tbody.innerHTML = `

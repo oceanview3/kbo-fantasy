@@ -497,7 +497,7 @@ body {
 }
 
 .rank-col { width: 60px; text-align: center; }
-.score-col { text-align: right; }
+.score-col, th.score-col { text-align: center !important; }
 .detail-col { width: 40px; text-align: center; }
 
 .rank-badge {
