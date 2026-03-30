@@ -108,7 +108,7 @@ def scrape_position(search_date, position):
     
     for pg in range(1, 20):
         url = (f"{BASE_URL}?p=chart&searchType=MONTHLY"
-               f"&searchDate={search_date}&position={position}&curPage={pg}")
+               f"&searchDate={search_date}&position={position}&page={pg}")
         
         try:
             html = fetch_page(url)
