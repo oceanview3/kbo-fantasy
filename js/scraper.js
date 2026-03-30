@@ -74,7 +74,8 @@ const Scraper = {
 
     async scrapeAll(year, month) {
         const searchDate = `Y${year}M${String(month).padStart(2, '0')}`;
-        const allPlayers = {};
+        const batters = {};
+        const pitchers = {};
         let totalPages = 0;
         const estimatedPages = 14; // ~8 batter + ~6 pitcher pages
 
@@ -88,18 +89,18 @@ const Scraper = {
             try {
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
-                const newCount = Object.keys(players).filter(k => !(k in allPlayers)).length;
+                const newCount = Object.keys(players).filter(k => !(k in batters)).length;
 
                 if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
                     break;
                 }
 
-                Object.assign(allPlayers, players);
+                Object.assign(batters, players);
                 totalPages++;
 
                 // Progress: 0% ~ 50%
                 const pct = Math.min(50, Math.round((totalPages / estimatedPages) * 50));
-                this.reportProgress(pct, `타자 ${Object.keys(allPlayers).length}명 수집 (${pg}페이지)...`);
+                this.reportProgress(pct, `타자 ${Object.keys(batters).length}명 수집 (${pg}페이지)...`);
 
             } catch (e) {
                 console.error(`[Scraper] Batter page ${pg} error:`, e);
@@ -112,7 +113,6 @@ const Scraper = {
 
         // Progress: 50%
         this.reportProgress(50, '투수 랭킹 수집 중...');
-        const batterCount = Object.keys(allPlayers).length;
 
         // Scrape pitchers
         for (let pg = 1; pg <= 20; pg++) {
@@ -121,20 +121,19 @@ const Scraper = {
             try {
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
-                const newCount = Object.keys(players).filter(k => !(k in allPlayers)).length;
+                const newCount = Object.keys(players).filter(k => !(k in pitchers)).length;
 
                 if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
                     break;
                 }
 
-                Object.assign(allPlayers, players);
+                Object.assign(pitchers, players);
                 totalPages++;
 
                 // Progress: 50% ~ 90%
                 const pitcherProgress = totalPages - 8; // pages after batters
                 const pct = Math.min(90, 50 + Math.round((pitcherProgress / 6) * 40));
-                const pitcherCount = Object.keys(allPlayers).length - batterCount;
-                this.reportProgress(pct, `투수 ${pitcherCount}명 수집 (${pg}페이지)...`);
+                this.reportProgress(pct, `투수 ${Object.keys(pitchers).length}명 수집 (${pg}페이지)...`);
 
             } catch (e) {
                 console.error(`[Scraper] Pitcher page ${pg} error:`, e);
@@ -145,8 +144,8 @@ const Scraper = {
             if (totalPages >= 14) break;
         }
 
-        console.log(`[Scraper] Total: ${Object.keys(allPlayers).length} players`);
-        return allPlayers;
+        console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers`);
+        return { batters, pitchers };
     },
 
     async uploadToFirebase(db, scores, monthKey) {

@@ -439,7 +439,7 @@ const App = {
             
             group.slots.forEach(slot => {
                 const playerName = roster[slot.key] || '';
-                const score = playerName ? (scores[playerName] || 0) : 0;
+                const score = playerName ? DataStore.getPlayerScore(this.rosterMonth, playerName, slot.key) : 0;
                 const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
                 
                 // Show input if editing OR if read-only but player exists

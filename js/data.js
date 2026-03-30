@@ -210,16 +210,29 @@ const DataStore = {
     // ── Scores ────────────────────────────────
     getScores(month) { return this.load().scores[month] || {}; },
 
-    getPlayerScore(month, playerName) {
-        return (this.getScores(month)[playerName]) || 0;
+    isPitcherSlot(slotKey) {
+        return ['SP1','SP2','SP3','SP4','SP5','RP1','RP2','RP3','RP4','RP5'].includes(slotKey);
+    },
+
+    getPlayerScore(month, playerName, slotKey) {
+        const monthScores = this.getScores(month);
+        // Supports both new partitioned format and old flat format (fallback)
+        if (this.isPitcherSlot(slotKey)) {
+            return (monthScores.pitchers?.[playerName]) || (monthScores[playerName]) || 0;
+        } else {
+            return (monthScores.batters?.[playerName]) || (monthScores[playerName]) || 0;
+        }
     },
 
     getTeamScore(teamId, month) {
         const roster = this.getMonthRoster(teamId, month);
-        const scores = this.getScores(month);
-        return Object.values(roster)
-            .filter(name => name && name.trim())
-            .reduce((sum, name) => sum + (scores[name] || 0), 0);
+        let sum = 0;
+        for (const [slotKey, name] of Object.entries(roster)) {
+            if (name && name.trim()) {
+                sum += this.getPlayerScore(month, name.trim(), slotKey);
+            }
+        }
+        return sum;
     },
 
     getTeamScoreStats(teamId, currentMonthStr) {
