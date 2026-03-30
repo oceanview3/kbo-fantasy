@@ -260,6 +260,9 @@ const DataStore = {
         const roster = this.getMonthRoster(teamId, month);
         let sum = 0;
         for (const [slotKey, player] of Object.entries(roster)) {
+            // Exclude bench (후보) slots from total score
+            if (slotKey.startsWith('BN')) continue;
+            
             if (player) {
                 sum += this.getPlayerScore(month, player, slotKey);
             }
