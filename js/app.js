@@ -200,22 +200,9 @@ const App = {
             if (e.target === document.getElementById('modal-overlay')) this.closeTeamDetail();
         });
 
-        // Modal tabs
-        document.querySelectorAll('.modal-tab').forEach(tab => {
-            tab.addEventListener('click', () => this.switchModalTab(tab.dataset.tab));
-        });
-
-        // Add team modal
-        document.getElementById('btn-add-team').addEventListener('click', () => this.openAddTeamModal());
-        document.getElementById('add-team-close').addEventListener('click', () => this.closeAddTeamModal());
-        document.getElementById('add-team-overlay').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('add-team-overlay')) this.closeAddTeamModal();
-        });
-        document.getElementById('btn-create-team').addEventListener('click', () => this.createTeam());
-
-        // Team editing
-        document.getElementById('btn-save-team-info').addEventListener('click', () => this.saveTeamInfo());
-        document.getElementById('btn-delete-team').addEventListener('click', () => this.deleteTeam());
+        // Modal tabs (removed)
+        // Add team modal (removed)
+        // Team editing (removed)
 
         // Roster month navigation
         document.getElementById('roster-month-prev').addEventListener('click', () => this.changeRosterMonth(-1));
@@ -234,7 +221,6 @@ const App = {
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeTeamDetail();
-                this.closeAddTeamModal();
             }
         });
     },
@@ -402,7 +388,6 @@ const App = {
         document.getElementById('modal-team-name').textContent = team.name;
         document.getElementById('modal-team-score').textContent =
             DataStore.getTeamScore(teamId, this.currentMonth).toFixed(2);
-        this.switchModalTab('roster');
         this.renderRosterMonth();
         document.getElementById('modal-overlay').classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -430,17 +415,6 @@ const App = {
         document.getElementById('modal-team-score').textContent =
             DataStore.getTeamScore(this.currentDetailTeamId, this.currentMonth).toFixed(2);
         this.renderRosterMonth();
-    },
-
-    switchModalTab(tabName) {
-        document.querySelectorAll('.modal-tab').forEach(t =>
-            t.classList.toggle('active', t.dataset.tab === tabName));
-        document.querySelectorAll('.modal-tab-content').forEach(c =>
-            c.classList.toggle('active', c.id === `tab-content-${tabName}`));
-        if (tabName === 'manage' && this.currentDetailTeamId) {
-            const team = DataStore.getTeam(this.currentDetailTeamId);
-            if (team) document.getElementById('edit-team-name').value = team.name;
-        }
     },
 
     // ==========================================
@@ -567,45 +541,6 @@ const App = {
         }
     },
 
-    // ==========================================
-    // Team CRUD
-    // ==========================================
-    createTeam() {
-        const name = document.getElementById('add-team-name').value.trim();
-        if (!name) { this.showToast('팀 이름을 입력해주세요'); return; }
-        const team = DataStore.addTeam(name);
-        this.syncToFirebase('addTeam', team);
-        this.closeAddTeamModal();
-        this.refreshDashboard();
-        this.refreshTeamsGrid();
-        this.showToast(`${name} 팀이 생성되었습니다!`);
-    },
-
-    saveTeamInfo() {
-        if (!this.currentDetailTeamId) return;
-        const name = document.getElementById('edit-team-name').value.trim();
-        if (!name) { this.showToast('팀 이름을 입력해주세요'); return; }
-        DataStore.updateTeam(this.currentDetailTeamId, { name });
-        this.syncToFirebase('updateTeam', this.currentDetailTeamId, { name });
-        document.getElementById('modal-team-name').textContent = name;
-        this.refreshDashboard();
-        this.refreshTeamsGrid();
-        this.showToast('팀 이름이 저장되었습니다');
-    },
-
-    deleteTeam() {
-        if (!this.currentDetailTeamId) return;
-        const team = DataStore.getTeam(this.currentDetailTeamId);
-        if (!team) return;
-        if (confirm(`정말 "${team.name}" 팀을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
-            DataStore.deleteTeam(this.currentDetailTeamId);
-            this.syncToFirebase('deleteTeam', this.currentDetailTeamId);
-            this.closeTeamDetail();
-            this.refreshDashboard();
-            this.refreshTeamsGrid();
-            this.showToast(`${team.name} 팀이 삭제되었습니다`);
-        }
-    },
 
     // ==========================================
     // Utility

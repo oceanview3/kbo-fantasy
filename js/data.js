@@ -55,6 +55,19 @@ const SLOT_GROUPS = [
     }
 ];
 
+const FIXED_TEAMS = [
+    { id: 'team_1', name: '재석 프린스' },
+    { id: 'team_2', name: '문기 도어즈' },
+    { id: 'team_3', name: '정명 재원맘스' },
+    { id: 'team_4', name: '경환 영건즈' },
+    { id: 'team_5', name: '승환 떡상스' },
+    { id: 'team_6', name: '찬웅 오크스' },
+    { id: 'team_7', name: '성민 프로세스' },
+    { id: 'team_8', name: '효진 휘집맘스' },
+    { id: 'team_9', name: '동진 빅아이톨즈' },
+    { id: 'team_10', name: '지훈 정배즈' }
+];
+
 const DataStore = {
     STORAGE_KEY: 'kbo_fantasy_data',
 
@@ -63,7 +76,7 @@ const DataStore = {
             teams: [
                 {
                     id: 'team_1',
-                    name: '상민 프로세스',
+                    name: '재석 프린스',
                     roster: {
                         '2026-03': {
                             'C':   '허인서',
@@ -92,15 +105,15 @@ const DataStore = {
                         }
                     }
                 },
-                { id: 'team_2',  name: '빌맙스',         roster: {} },
-                { id: 'team_3',  name: '경환 영건조',     roster: {} },
-                { id: 'team_4',  name: '승환 떡살스',     roster: {} },
-                { id: 'team_5',  name: '천용 오크스',     roster: {} },
-                { id: 'team_6',  name: '효진 휘집맙스',   roster: {} },
-                { id: 'team_7',  name: '동진 빅아이돌즈', roster: {} },
-                { id: 'team_8',  name: '지훈 정배조',     roster: {} },
-                { id: 'team_9',  name: '팀 9',            roster: {} },
-                { id: 'team_10', name: '팀 10',           roster: {} },
+                { id: 'team_2',  name: '문기 도어즈',     roster: {} },
+                { id: 'team_3',  name: '정명 재원맘스',   roster: {} },
+                { id: 'team_4',  name: '경환 영건즈',     roster: {} },
+                { id: 'team_5',  name: '승환 떡상스',     roster: {} },
+                { id: 'team_6',  name: '찬웅 오크스',     roster: {} },
+                { id: 'team_7',  name: '성민 프로세스',   roster: {} },
+                { id: 'team_8',  name: '효진 휘집맘스',   roster: {} },
+                { id: 'team_9',  name: '동진 빅아이톨즈', roster: {} },
+                { id: 'team_10', name: '지훈 정배즈',     roster: {} },
             ],
             scores: { '2026-03': {} },
             currentMonth: '2026-03'
@@ -129,7 +142,16 @@ const DataStore = {
             const raw = localStorage.getItem(this.STORAGE_KEY);
             if (raw) {
                 const data = JSON.parse(raw);
-                return this.migrate(data);
+                this.migrate(data);
+                
+                // Enforce 10 fixed teams
+                const currentTeams = data.teams || [];
+                data.teams = FIXED_TEAMS.map(ft => {
+                    const existing = currentTeams.find(t => t.id === ft.id);
+                    return existing ? { ...existing, name: ft.name } : { id: ft.id, name: ft.name, roster: {} };
+                });
+                
+                return data;
             }
         } catch (e) {
             console.error('Failed to load data:', e);
@@ -150,27 +172,6 @@ const DataStore = {
     // ── Team CRUD ──────────────────────────────
     getTeams() { return this.load().teams; },
     getTeam(teamId) { return this.load().teams.find(t => t.id === teamId); },
-
-    addTeam(name) {
-        const data = this.load();
-        const team = { id: 'team_' + Date.now(), name, roster: {} };
-        data.teams.push(team);
-        this.save(data);
-        return team;
-    },
-
-    updateTeam(teamId, updates) {
-        const data = this.load();
-        const team = data.teams.find(t => t.id === teamId);
-        if (team) { Object.assign(team, updates); this.save(data); }
-        return team;
-    },
-
-    deleteTeam(teamId) {
-        const data = this.load();
-        data.teams = data.teams.filter(t => t.id !== teamId);
-        this.save(data);
-    },
 
     // ── Roster (슬롯 기반) ──────────────────────
     getMonthRoster(teamId, month) {

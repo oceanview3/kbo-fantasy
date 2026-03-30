@@ -85,9 +85,6 @@
                 <h1 class="section-title">
                     <span class="title-accent">👥</span> 팀 관리
                 </h1>
-                <button class="btn btn-primary" id="btn-add-team">
-                    <span>+</span> 새 팀 추가
-                </button>
             </div>
             <div class="teams-grid" id="teams-grid">
                 <!-- Team cards rendered by JS -->
@@ -109,47 +106,23 @@
                 <button class="modal-close" id="modal-close">✕</button>
             </div>
             <div class="modal-body">
-                <div class="modal-tabs">
-                    <button class="modal-tab active" data-tab="roster" id="tab-roster">📋 선수 명단</button>
-                    <button class="modal-tab" data-tab="manage" id="tab-manage">⚙️ 편집</button>
+                <!-- Header: Month nav & Edit button -->
+                <div class="roster-header">
+                    <div class="roster-month-nav">
+                        <button class="roster-month-arrow" id="roster-month-prev">‹</button>
+                        <span class="roster-month-label" id="roster-month-label">3월</span>
+                        <button class="roster-month-arrow" id="roster-month-next">›</button>
+                    </div>
+                    <button class="btn btn-sm" id="btn-toggle-roster-edit">⚙️ 명단 수정</button>
                 </div>
-
-                <!-- Roster Tab: 월별 선수 명단 -->
-                <div class="modal-tab-content active" id="tab-content-roster">
-                    <!-- Header: Month nav & Edit button -->
-                    <div class="roster-header">
-                        <div class="roster-month-nav">
-                            <button class="roster-month-arrow" id="roster-month-prev">‹</button>
-                            <span class="roster-month-label" id="roster-month-label">3월</span>
-                            <button class="roster-month-arrow" id="roster-month-next">›</button>
-                        </div>
-                        <button class="btn btn-sm" id="btn-toggle-roster-edit">⚙️ 명단 수정</button>
-                    </div>
-                    <!-- Player list for selected month -->
-                    <!-- Player grid for slots -->
-                    <div class="roster-grid" id="roster-player-list"></div>
-                    <!-- Copy from prev month -->
-                    <div class="roster-copy-row" id="roster-copy-row">
-                        <button class="btn-copy-month" id="btn-copy-prev-month">
-                            ← 이전 달 명단 복사
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Manage Tab -->
-                <div class="modal-tab-content" id="tab-content-manage">
-                    <div class="manage-section">
-                        <h3 class="manage-title">팀 이름 수정</h3>
-                        <div class="form-group">
-                            <input type="text" id="edit-team-name" class="input" placeholder="팀 이름">
-                        </div>
-                        <button class="btn btn-primary" id="btn-save-team-info">저장</button>
-                    </div>
-                    <hr class="divider">
-                    <div class="manage-section">
-                        <h3 class="manage-title danger">위험 구역</h3>
-                        <button class="btn btn-danger" id="btn-delete-team">팀 삭제</button>
-                    </div>
+                <!-- Player list for selected month -->
+                <!-- Player grid for slots -->
+                <div class="roster-grid" id="roster-player-list"></div>
+                <!-- Copy from prev month -->
+                <div class="roster-copy-row" id="roster-copy-row">
+                    <button class="btn-copy-month" id="btn-copy-prev-month">
+                        ← 이전 달 명단 복사
+                    </button>
                 </div>
             </div>
         </div>
