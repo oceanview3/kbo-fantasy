@@ -222,36 +222,49 @@ const DataStore = {
     getPlayerScore(month, player, slotKey) {
         if (!player) return 0;
         const name = (typeof player === 'string' ? player : (player.name || '')).trim();
-        const team = typeof player === 'string' ? '' : player.team;
+        const team = (typeof player === 'string' ? '' : player.team).trim();
         if (!name) return 0;
 
         const monthScores = this.getScores(month);
+        
         const pitchers = monthScores.pitchers || {};
         const batters = monthScores.batters || {};
-        const isPitcher = this.isPitcherSlot(slotKey);
-        const pool = isPitcher ? pitchers : batters;
+        
+        const isPitcherSlot = this.isPitcherSlot(slotKey);
+        
+        // Primary pool based on slot type
+        let primaryPool = isPitcherSlot ? pitchers : batters;
+        let secondaryPool = isPitcherSlot ? batters : pitchers;
 
-        // 1. If team is specified, strictly look for "Name (Team)"
+        const findInPool = (pool) => {
+            if (team) {
+                const keyWithTeam = `${name} (${team})`;
+                if (pool[keyWithTeam] !== undefined) return pool[keyWithTeam];
+            }
+            if (pool[name] !== undefined) return pool[name];
+            
+            // If no team, find first match starting with Name (
+            if (!team) {
+                const key = Object.keys(pool).find(k => k === name || k.startsWith(`${name} (`));
+                if (key !== undefined) return pool[key];
+            }
+            return undefined;
+        };
+
+        // 1. Try primary pool (e.g., pitchers for SP/RP slots, batters for others)
+        let score = findInPool(primaryPool);
+        if (score !== undefined) return score;
+
+        // 2. Try secondary pool (especially important for Bench slots which can be either)
+        score = findInPool(secondaryPool);
+        if (score !== undefined) return score;
+
+        // 3. Last fallback: Check flat scores if any
         if (team) {
             const keyWithTeam = `${name} (${team})`;
-            // Check in partitioned pool then flat scores
-            if (pool[keyWithTeam] !== undefined) return pool[keyWithTeam];
             if (monthScores[keyWithTeam] !== undefined) return monthScores[keyWithTeam];
-            
-            // If team was specified but not found, DO NOT fall back to other teams with same name
-            return 0;
         }
-
-        // 2. If no team specified (legacy/optional), try exact name match
-        if (pool[name] !== undefined) return pool[name];
         if (monthScores[name] !== undefined) return monthScores[name];
-
-        // 3. Last resort: Find first team matching this name
-        const keys = Object.keys(pool);
-        const matchKey = keys.find(k => k === name || k.startsWith(`${name} (`));
-        if (matchKey && pool[matchKey] !== undefined) {
-            return pool[matchKey];
-        }
 
         return 0;
     },
