@@ -221,35 +221,35 @@ const DataStore = {
 
     getPlayerScore(month, player, slotKey) {
         if (!player) return 0;
-        const name = typeof player === 'string' ? player.trim() : (player.name || '').trim();
+        const name = (typeof player === 'string' ? player : (player.name || '')).trim();
         const team = typeof player === 'string' ? '' : player.team;
         if (!name) return 0;
 
         const monthScores = this.getScores(month);
-        
-        // Supports both new partitioned format and old flat format (fallback)
         const pitchers = monthScores.pitchers || {};
         const batters = monthScores.batters || {};
-        
         const isPitcher = this.isPitcherSlot(slotKey);
         const pool = isPitcher ? pitchers : batters;
 
-        // 1. Try exact match with team: "이름 (팀)"
+        // 1. If team is specified, strictly look for "Name (Team)"
         if (team) {
             const keyWithTeam = `${name} (${team})`;
-            if (pool[keyWithTeam]) return pool[keyWithTeam];
-            if (monthScores[keyWithTeam]) return monthScores[keyWithTeam];
+            // Check in partitioned pool then flat scores
+            if (pool[keyWithTeam] !== undefined) return pool[keyWithTeam];
+            if (monthScores[keyWithTeam] !== undefined) return monthScores[keyWithTeam];
+            
+            // If team was specified but not found, DO NOT fall back to other teams with same name
+            return 0;
         }
 
-        // 2. Try exact match with name only (for names without team info in scraper or old data)
-        if (pool[name]) return pool[name];
-        if (monthScores[name]) return monthScores[name];
+        // 2. If no team specified (legacy/optional), try exact name match
+        if (pool[name] !== undefined) return pool[name];
+        if (monthScores[name] !== undefined) return monthScores[name];
 
-        // 3. If no team specified, try to find any key that starts with Name (Team)
-        // Since team selection is optional, we pick the first matching one.
+        // 3. Last resort: Find first team matching this name
         const keys = Object.keys(pool);
         const matchKey = keys.find(k => k === name || k.startsWith(`${name} (`));
-        if (matchKey && pool[matchKey]) {
+        if (matchKey && pool[matchKey] !== undefined) {
             return pool[matchKey];
         }
 
