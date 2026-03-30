@@ -377,8 +377,6 @@ const App = {
         const team = DataStore.getTeam(this.currentDetailTeamId);
         if (!team) return;
         document.getElementById('modal-team-name').textContent = team.name;
-        document.getElementById('modal-team-score').textContent =
-            DataStore.getTeamScoreStats(this.currentDetailTeamId, this.currentMonth).current.toFixed(2);
         this.renderRosterMonth();
     },
 
@@ -408,6 +406,11 @@ const App = {
         document.getElementById('roster-month-label').textContent = `${monthNum}월`;
         document.getElementById('roster-month-prev').disabled = (monthIdx === 0);
         document.getElementById('roster-month-next').disabled = (monthIdx === SEASON_MONTHS.length - 1);
+        
+        // Update total score for the selected month
+        const teamScore = DataStore.getTeamScore(this.currentDetailTeamId, this.rosterMonth);
+        const scoreEl = document.getElementById('modal-team-score');
+        if (scoreEl) scoreEl.textContent = teamScore.toFixed(2);
         
         const copyRow = document.getElementById('roster-copy-row');
         if (copyRow) {
