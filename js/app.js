@@ -8,6 +8,7 @@ const App = {
     currentView: 'dashboard',
     currentDetailTeamId: null,
     rosterMonth: null,   // month currently shown in the team detail roster
+    isEditingRoster: false, // track edit mode
     useFirebase: false,
     db: null,
 
@@ -220,6 +221,9 @@ const App = {
         document.getElementById('roster-month-prev').addEventListener('click', () => this.changeRosterMonth(-1));
         document.getElementById('roster-month-next').addEventListener('click', () => this.changeRosterMonth(1));
 
+        // Roster Edit Mode Toggle
+        document.getElementById('btn-toggle-roster-edit').addEventListener('click', () => this.toggleRosterEditMode());
+
         // Copy previous month roster
         document.getElementById('btn-copy-prev-month').addEventListener('click', () => this.copyPrevMonthRoster());
 
@@ -392,6 +396,7 @@ const App = {
     openTeamDetail(teamId) {
         this.currentDetailTeamId = teamId;
         this.rosterMonth = this.currentMonth; // start on current score month
+        this.isEditingRoster = false; // default to view mode
         const team = DataStore.getTeam(teamId);
         if (!team) return;
         document.getElementById('modal-team-name').textContent = team.name;
@@ -448,6 +453,14 @@ const App = {
         this.renderRosterMonth();
     },
 
+    toggleRosterEditMode() {
+        this.isEditingRoster = !this.isEditingRoster;
+        this.renderRosterMonth();
+        if (!this.isEditingRoster) {
+            this.showToast('명단이 저장되었습니다');
+        }
+    },
+
     renderRosterMonth() {
         if (!this.currentDetailTeamId) return;
         const monthIdx = SEASON_MONTHS.indexOf(this.rosterMonth);
@@ -456,13 +469,30 @@ const App = {
         document.getElementById('roster-month-label').textContent = `${monthNum}월`;
         document.getElementById('roster-month-prev').disabled = (monthIdx === 0);
         document.getElementById('roster-month-next').disabled = (monthIdx === SEASON_MONTHS.length - 1);
-        document.getElementById('roster-copy-row').style.display = monthIdx === 0 ? 'none' : 'flex';
+        
+        const copyRow = document.getElementById('roster-copy-row');
+        if (copyRow) {
+            copyRow.style.display = (monthIdx === 0 || !this.isEditingRoster) ? 'none' : 'flex';
+        }
+
+        const btnEdit = document.getElementById('btn-toggle-roster-edit');
+        if (btnEdit) {
+            if (this.isEditingRoster) {
+                btnEdit.innerHTML = '💾 저장';
+                btnEdit.classList.add('btn-primary');
+            } else {
+                btnEdit.innerHTML = '⚙️ 명단 수정';
+                btnEdit.classList.remove('btn-primary');
+            }
+        }
 
         const roster = DataStore.getMonthRoster(this.currentDetailTeamId, this.rosterMonth) || {};
         const scores = DataStore.getScores(this.rosterMonth);
         const listEl = document.getElementById('roster-player-list');
 
         let html = '';
+        const readonlyAttr = this.isEditingRoster ? '' : 'readonly';
+
         SLOT_GROUPS.forEach(group => {
             html += `<div class="roster-group">
                 <h4 class="roster-group-title">${group.label}</h4>
@@ -473,14 +503,17 @@ const App = {
                 const score = playerName ? (scores[playerName] || 0) : 0;
                 const scoreClass = score > 0 ? 'score-positive' : score < 0 ? 'score-negative' : 'score-zero';
                 
+                // Show input if editing OR if read-only but player exists
+                // If not editing and player is empty, maybe just show '-' but an empty input is fine too for alignment
                 html += `
                     <div class="slot-row">
                         <span class="slot-label">${slot.label}</span>
                         <div class="slot-content">
                             <input type="text" class="input slot-input" 
-                                placeholder="선수 이름" 
+                                placeholder="${this.isEditingRoster ? '선수 이름' : '비어 있음'}" 
                                 value="${playerName}"
                                 data-slot="${slot.key}"
+                                ${readonlyAttr}
                                 onblur="App.handleSlotInput(this)"
                                 onkeydown="if(event.key==='Enter') this.blur();">
                         </div>

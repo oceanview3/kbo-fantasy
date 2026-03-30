@@ -885,14 +885,20 @@ body {
 /* ============================================
    Monthly Roster Navigation
    ============================================ */
+.roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+}
+
 .roster-month-nav {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 16px;
-    padding: 14px 0 10px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
 }
 
 .roster-month-arrow {
@@ -997,14 +1003,23 @@ body {
 
 .slot-input {
     width: 100%;
-    background: transparent;
-    border: 1px dashed transparent;
     color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
-    padding: 4px 8px;
+    padding: 6px 8px;
     border-radius: 4px;
     transition: var(--transition);
+}
+
+.slot-input[readonly] {
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: default;
+}
+
+.slot-input:not([readonly]) {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
 }
 
 .slot-input::placeholder {
@@ -1012,9 +1027,9 @@ body {
     font-style: italic;
 }
 
-.slot-input:hover, .slot-input:focus {
-    background: rgba(0, 0, 0, 0.2);
-    border-color: var(--border-hover);
+.slot-input:not([readonly]):hover, .slot-input:not([readonly]):focus {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-blue);
     outline: none;
 }
 
