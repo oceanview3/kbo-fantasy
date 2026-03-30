@@ -221,7 +221,7 @@ const DataStore = {
 
     getPlayerScore(month, player, slotKey) {
         if (!player) return 0;
-        const name = typeof player === 'string' ? player.trim() : player.name;
+        const name = typeof player === 'string' ? player.trim() : (player.name || '').trim();
         const team = typeof player === 'string' ? '' : player.team;
         if (!name) return 0;
 
@@ -234,15 +234,26 @@ const DataStore = {
         const isPitcher = this.isPitcherSlot(slotKey);
         const pool = isPitcher ? pitchers : batters;
 
-        // Try exact match with team: "이름 (팀)"
+        // 1. Try exact match with team: "이름 (팀)"
         if (team) {
             const keyWithTeam = `${name} (${team})`;
             if (pool[keyWithTeam]) return pool[keyWithTeam];
             if (monthScores[keyWithTeam]) return monthScores[keyWithTeam];
         }
 
-        // Fallback to name only
-        return (pool[name]) || (monthScores[name]) || 0;
+        // 2. Try exact match with name only (for names without team info in scraper or old data)
+        if (pool[name]) return pool[name];
+        if (monthScores[name]) return monthScores[name];
+
+        // 3. If no team specified, try to find any key that starts with Name (Team)
+        // Since team selection is optional, we pick the first matching one.
+        const keys = Object.keys(pool);
+        const matchKey = keys.find(k => k === name || k.startsWith(`${name} (`));
+        if (matchKey && pool[matchKey]) {
+            return pool[matchKey];
+        }
+
+        return 0;
     },
 
     getTeamScore(teamId, month) {
