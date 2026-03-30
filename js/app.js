@@ -14,7 +14,6 @@ const App = {
     async init() {
         this.currentMonth = DataStore.getCurrentMonth();
         this.bindEvents();
-        this.updateMonthDisplay();
         this.refreshDashboard();
 
         // Try Firebase connection
@@ -24,6 +23,7 @@ const App = {
     async initFirebase() {
         if (!FIREBASE_CONFIG.apiKey) {
             console.log('[App] No Firebase config, using localStorage only');
+            await this.updateLastUpdated();
             return;
         }
 
@@ -48,14 +48,14 @@ const App = {
 
             this.refreshDashboard();
 
-            // Show last updated time
-            await this.updateLastUpdated();
-
             // Listen for real-time updates
             this.listenFirebase();
         } catch (e) {
             console.error('[App] Firebase init failed:', e);
             this.showToast('⚠️ 서버 연결 실패, 로컬 모드');
+        } finally {
+            // Show last updated time inside finally to ensure it runs even on error
+            await this.updateLastUpdated();
         }
     },
 
