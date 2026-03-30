@@ -48,6 +48,9 @@ const App = {
             this.refreshDashboard();
             if (this.currentView === 'teams') this.refreshTeamsGrid();
 
+            // Show last updated time
+            await this.updateLastUpdated();
+
             // Listen for real-time updates
             this.listenFirebase();
         } catch (e) {
@@ -226,6 +229,9 @@ const App = {
         document.getElementById('btn-add-player').addEventListener('click', () => this.addPlayer());
         document.getElementById('btn-delete-team').addEventListener('click', () => this.deleteTeam());
 
+        // Refresh button
+        document.getElementById('btn-refresh').addEventListener('click', () => this.refreshScores());
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -233,6 +239,56 @@ const App = {
                 this.closeAddTeamModal();
             }
         });
+    },
+
+    // ==========================================
+    // Score Refresh
+    // ==========================================
+    async refreshScores() {
+        const btn = document.getElementById('btn-refresh');
+        btn.classList.add('refreshing');
+
+        try {
+            if (this.useFirebase) {
+                await this.downloadFromFirebase();
+                this.refreshDashboard();
+                if (this.currentView === 'teams') this.refreshTeamsGrid();
+                if (this.currentDetailTeamId) this.refreshTeamDetail();
+                this.updateLastUpdated();
+                this.showToast('점수가 업데이트되었습니다');
+            } else {
+                this.showToast('서버에 연결되어 있지 않습니다');
+            }
+        } catch (e) {
+            console.error('[App] Refresh failed:', e);
+            this.showToast('업데이트 실패');
+        } finally {
+            setTimeout(() => btn.classList.remove('refreshing'), 600);
+        }
+    },
+
+    async updateLastUpdated() {
+        const el = document.getElementById('last-updated');
+        try {
+            if (this.useFirebase) {
+                const monthKey = this.currentMonth;
+                const doc = await this.db.collection('scores').doc(monthKey).get();
+                if (doc.exists && doc.data().updated_at) {
+                    const dt = new Date(doc.data().updated_at);
+                    const formatted = dt.toLocaleString('ko-KR', {
+                        year: 'numeric', month: 'long', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                    el.textContent = `마지막 업데이트: ${formatted}`;
+                } else {
+                    el.textContent = '마지막 업데이트: 데이터 없음';
+                }
+            } else {
+                el.textContent = '마지막 업데이트: 로컬 모드';
+            }
+        } catch (e) {
+            el.textContent = '마지막 업데이트: 확인 불가';
+        }
     },
 
     // ==========================================

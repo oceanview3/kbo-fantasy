@@ -2,8 +2,8 @@ name: Scrape KBO Scores
 
 on:
   schedule:
-    # 매일 KST 오전 9시, 오후 3시, 오후 9시 (UTC 0시, 6시, 12시)
-    - cron: '0 0,6,12 * * *'
+    # 매일 KST 자정 (UTC 15:00)
+    - cron: '0 15 * * *'
   workflow_dispatch:  # 수동 실행 가능
 
 jobs:
