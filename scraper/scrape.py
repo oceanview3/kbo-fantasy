@@ -1,18 +1,16 @@
 """
 웰컴톱랭킹 KBO 선수 점수 스크래퍼
-- table tbody tr 에서 순위/선수명/팀/점수 추출
-- URL 파라미터: position=T(타자), position=1(투수), curPage=N
+- 서버사이드 렌더링(SSR) 페이지를 requests + BeautifulSoup으로 파싱
 - Firebase Firestore REST API로 실시간 업데이트
 """
 
-import asyncio
 import json
 import sys
 import urllib.request
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
-
-from playwright.async_api import async_playwright
+from html.parser import HTMLParser
 
 BASE_URL = "https://www.welcometopranking.com/baseball/"
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -21,114 +19,149 @@ FIREBASE_PROJECT_ID = "kbo-fantasy-7616b"
 FIRESTORE_URL = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents"
 
 
-async def scrape_position(page, search_date, position):
-    """
-    Scrape all pages for a position type.
-    position: 'T' for batters, '1' for pitchers
-    """
-    pos_name = "타자" if position == "T" else "투수"
+class TableParser(HTMLParser):
+    """Simple HTML parser to extract table rows"""
+    def __init__(self):
+        super().__init__()
+        self.in_tbody = False
+        self.in_tr = False
+        self.in_td = False
+        self.current_row = []
+        self.current_cell = ""
+        self.rows = []
+        self.td_count = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tbody":
+            self.in_tbody = True
+        elif tag == "tr" and self.in_tbody:
+            self.in_tr = True
+            self.current_row = []
+            self.td_count = 0
+        elif tag == "td" and self.in_tr:
+            self.in_td = True
+            self.current_cell = ""
+            self.td_count += 1
+
+    def handle_endtag(self, tag):
+        if tag == "tbody":
+            self.in_tbody = False
+        elif tag == "tr" and self.in_tr:
+            self.in_tr = False
+            if self.current_row:
+                self.rows.append(self.current_row)
+        elif tag == "td" and self.in_td:
+            self.in_td = False
+            self.current_row.append(self.current_cell.strip())
+
+    def handle_data(self, data):
+        if self.in_td:
+            self.current_cell += data
+
+
+def fetch_page(url):
+    """Fetch a page with proper headers"""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+        "Referer": "https://www.welcometopranking.com/"
+    }
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def parse_ranking_table(html):
+    """Parse ranking table from HTML"""
+    parser = TableParser()
+    parser.feed(html)
+    
     players = {}
-
-    for pg in range(1, 20):
-        url = (f"{BASE_URL}?p=chart&searchType=MONTHLY"
-               f"&searchDate={search_date}&position={position}&curPage={pg}")
-
-        await page.goto(url, timeout=30000)
+    for row in parser.rows:
+        if len(row) < 4:
+            continue
         
-        # Wait for table rows to appear (up to 10 seconds)
+        # row[0]=순위, row[1]=선수명, row[2]=구단, row[3]=톱랭킹포인트
         try:
-            await page.wait_for_selector("table tbody tr td", timeout=10000)
-        except:
-            if pg == 1:
-                print(f"  [{pos_name}] Waiting for data... trying longer wait")
-                await page.wait_for_timeout(5000)
-                # Check again
-                count = await page.locator("table tbody tr").count()
-                if count == 0:
-                    print(f"  [{pos_name}] Still no data after extended wait")
-                    break
+            rank = int(row[0].strip())
+        except ValueError:
+            continue
         
-        await page.wait_for_timeout(1000)
-
-        # Get all table rows
-        rows = page.locator("table tbody tr")
-        row_count = await rows.count()
-
-        if row_count == 0:
-            break
-
-        page_count = 0
-        for i in range(row_count):
-            try:
-                row = rows.nth(i)
-                cells = row.locator("td")
-                cell_count = await cells.count()
-
-                if cell_count < 4:
-                    continue
-
-                # Column order: [순위, 선수명, 구단, 톱랭킹포인트, ...]
-                rank_text = (await cells.nth(0).inner_text()).strip()
-                name_raw = (await cells.nth(1).inner_text()).strip()
-                score_text = (await cells.nth(3).inner_text()).strip()
-
-                # Clean name (get first line only)
-                name = name_raw.split('\n')[0].strip()
-
-                # Parse rank
-                try:
-                    rank = int(rank_text)
-                except ValueError:
-                    continue
-
-                # Parse score
-                try:
-                    score = float(score_text.replace(',', ''))
-                except ValueError:
-                    score = 0.0
-
-                if name and rank > 0:
-                    players[name] = score
-                    page_count += 1
-
-            except Exception:
-                continue
-
-        print(f"  [{pos_name}] Page {pg}: {page_count} players")
-
-        if row_count < 20:
-            break
-
-    print(f"  [{pos_name}] Total: {len(players)} players")
+        name = row[1].strip().split('\n')[0].strip()
+        
+        try:
+            score = float(row[3].strip().replace(',', ''))
+        except ValueError:
+            score = 0.0
+        
+        if name and rank > 0:
+            players[name] = score
+    
     return players
 
 
-async def scrape_monthly_scores(year=2026, month=3):
+def scrape_position(search_date, position):
+    """Scrape all pages for a position"""
+    pos_name = "타자" if position == "T" else "투수"
+    all_players = {}
+    
+    for pg in range(1, 20):
+        url = (f"{BASE_URL}?p=chart&searchType=MONTHLY"
+               f"&searchDate={search_date}&position={position}&curPage={pg}")
+        
+        try:
+            html = fetch_page(url)
+        except Exception as e:
+            print(f"  [{pos_name}] Page {pg} fetch error: {e}")
+            break
+        
+        players = parse_ranking_table(html)
+        
+        if not players:
+            if pg == 1:
+                print(f"  [{pos_name}] No data found on page 1!")
+                if "<table" in html:
+                    idx = html.find("<table")
+                    print(f"  [{pos_name}] Table found at position {idx}")
+                    print(f"  [{pos_name}] Snippet: {html[idx:idx+500]}")
+                else:
+                    print(f"  [{pos_name}] No <table> tag found!")
+                    print(f"  [{pos_name}] HTML length: {len(html)}")
+            break
+        
+        # Check for duplicate data (pagination returning same page)
+        new_players = {k: v for k, v in players.items() if k not in all_players}
+        if not new_players and pg > 1:
+            print(f"  [{pos_name}] Page {pg}: duplicate data, stopping")
+            break
+        
+        all_players.update(players)
+        print(f"  [{pos_name}] Page {pg}: {len(new_players)} new players")
+        
+        if len(players) < 20:
+            break
+    
+    print(f"  [{pos_name}] Total: {len(all_players)} players")
+    return all_players
+
+
+def scrape_monthly_scores(year=2026, month=3):
     """Scrape all player scores for a given month"""
     search_date = f"Y{year}M{month:02d}"
     print(f"\n{'='*50}")
     print(f"Scraping {year}년 {month}월 월간 랭킹")
     print(f"{'='*50}")
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 900},
-            locale="ko-KR"
-        )
-        page = await context.new_page()
+    all_players = {}
 
-        all_players = {}
+    print("\n[타자 랭킹]")
+    batters = scrape_position(search_date, "T")
+    all_players.update(batters)
 
-        print("\n[타자 랭킹]")
-        batters = await scrape_position(page, search_date, "T")
-        all_players.update(batters)
-
-        print("\n[투수 랭킹]")
-        pitchers = await scrape_position(page, search_date, "1")
-        all_players.update(pitchers)
-
-        await browser.close()
+    print("\n[투수 랭킹]")
+    pitchers = scrape_position(search_date, "1")
+    all_players.update(pitchers)
 
     print(f"\n총 {len(all_players)}명 점수 수집 완료")
     return all_players
@@ -160,9 +193,7 @@ def upload_to_firebase(scores, year, month):
     doc = {
         "fields": {
             "players": {
-                "mapValue": {
-                    "fields": player_fields
-                }
+                "mapValue": {"fields": player_fields}
             },
             "updated_at": {
                 "stringValue": datetime.now().isoformat()
@@ -182,19 +213,19 @@ def upload_to_firebase(scores, year, month):
     try:
         with urllib.request.urlopen(req) as resp:
             if resp.status == 200:
-                print(f"\n✅ Firebase 업로드 성공! ({month_key}: {len(scores)}명)")
+                print(f"\nFirebase upload OK! ({month_key}: {len(scores)} players)")
                 return True
     except Exception as e:
-        print(f"\n❌ Firebase 업로드 에러: {e}")
+        print(f"\nFirebase upload error: {e}")
     return False
 
 
-async def main():
+def main():
     now = datetime.now()
     year = int(sys.argv[1]) if len(sys.argv) > 1 else now.year
     month = int(sys.argv[2]) if len(sys.argv) > 2 else now.month
 
-    scores = await scrape_monthly_scores(year, month)
+    scores = scrape_monthly_scores(year, month)
 
     if scores:
         save_scores_local(scores, year, month)
@@ -212,4 +243,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
