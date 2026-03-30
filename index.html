@@ -25,11 +25,7 @@
                 </div>
             </div>
 
-            <div class="month-selector" id="month-selector">
-                <button class="month-arrow" id="month-prev">‹</button>
-                <span class="month-display" id="month-display">2026년 3월</span>
-                <button class="month-arrow" id="month-next">›</button>
-            </div>
+            <!-- Removed month selector -->
         </div>
     </header>
 
@@ -39,10 +35,9 @@
         <section class="view active" id="view-dashboard">
             <div class="dashboard-header">
                 <h1 class="section-title">
-                    <span class="title-accent">🏆</span> 팀 순위
-                    <span class="title-month" id="dashboard-month">3월</span>
+                    <span class="title-accent">🏆</span> 전체 순위
                 </h1>
-                <p class="section-desc">웰컴톱랭킹 월간 누적 포인트 기준</p>
+                <p class="section-desc">웰컴톱랭킹 누적 포인트 기준</p>
                 <div class="update-bar">
                     <span class="update-time" id="last-updated">마지막 업데이트: 불러오는 중...</span>
                     <button class="btn-refresh" id="btn-refresh" title="점수 새로고침">
@@ -59,9 +54,9 @@
                         <tr>
                             <th class="rank-col">순위</th>
                             <th class="team-col">팀</th>
-                            <th class="owner-col">오너</th>
-                            <th class="score-col">총점</th>
-                            <th class="players-col">출전선수</th>
+                            <th class="score-col">총 누적 점수</th>
+                            <th class="score-col">현재 월 점수</th>
+                            <th class="score-col hidden-mobile">직전 월 점수</th>
                             <th class="detail-col"></th>
                         </tr>
                     </thead>

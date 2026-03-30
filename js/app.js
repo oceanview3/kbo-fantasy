@@ -47,7 +47,6 @@ const App = {
             }
 
             this.refreshDashboard();
-            if (this.currentView === 'teams') this.refreshTeamsGrid();
 
             // Show last updated time
             await this.updateLastUpdated();
@@ -184,9 +183,6 @@ const App = {
             if (this.currentDetailTeamId) this.closeTeamDetail();
         });
 
-        // Month navigation
-        document.getElementById('month-prev').addEventListener('click', () => this.changeMonth(-1));
-        document.getElementById('month-next').addEventListener('click', () => this.changeMonth(1));
 
         // Team detail modal
         document.getElementById('modal-close').addEventListener('click', () => this.closeTeamDetail());
@@ -322,32 +318,10 @@ const App = {
     // ==========================================
     refreshDashboard() {
         const teams = DataStore.getTeams();
-        document.getElementById('dashboard-month').textContent =
-            UI.formatMonthShort(this.currentMonth);
         UI.renderPodium(teams, this.currentMonth);
         UI.renderRankingTable(teams, this.currentMonth);
     },
 
-    // ==========================================
-    // Month Navigation
-    // ==========================================
-    changeMonth(delta) {
-        const [year, month] = this.currentMonth.split('-').map(Number);
-        let newMonth = month + delta;
-        let newYear = year;
-        if (newMonth > 12) { newMonth = 1; newYear++; }
-        if (newMonth < 1) { newMonth = 12; newYear--; }
-        this.currentMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-        DataStore.setCurrentMonth(this.currentMonth);
-        this.updateMonthDisplay();
-        this.refreshDashboard();
-        if (this.currentDetailTeamId) this.refreshTeamDetail();
-    },
-
-    updateMonthDisplay() {
-        document.getElementById('month-display').textContent =
-            UI.formatMonth(this.currentMonth);
-    },
 
     // ==========================================
     // Team Detail Modal
@@ -360,7 +334,7 @@ const App = {
         if (!team) return;
         document.getElementById('modal-team-name').textContent = team.name;
         document.getElementById('modal-team-score').textContent =
-            DataStore.getTeamScore(teamId, this.currentMonth).toFixed(2);
+            DataStore.getTeamScoreStats(teamId, this.currentMonth).current.toFixed(2);
         this.renderRosterMonth();
         document.getElementById('modal-overlay').classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -386,7 +360,7 @@ const App = {
         if (!team) return;
         document.getElementById('modal-team-name').textContent = team.name;
         document.getElementById('modal-team-score').textContent =
-            DataStore.getTeamScore(this.currentDetailTeamId, this.currentMonth).toFixed(2);
+            DataStore.getTeamScoreStats(this.currentDetailTeamId, this.currentMonth).current.toFixed(2);
         this.renderRosterMonth();
     },
 

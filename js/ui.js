@@ -21,7 +21,10 @@ const UI = {
         }
 
         const sorted = teams
-            .map(t => ({ ...t, score: DataStore.getTeamScore(t.id, month) }))
+            .map(t => {
+                const stats = DataStore.getTeamScoreStats(t.id, month);
+                return { ...t, score: stats.total };
+            })
             .sort((a, b) => b.score - a.score);
 
         const top3 = sorted.slice(0, 3);
@@ -50,11 +53,15 @@ const UI = {
         const tbody = document.getElementById('ranking-tbody');
 
         const sorted = teams
-            .map(t => ({
-                ...t,
-                score: DataStore.getTeamScore(t.id, month),
-                activeCount: DataStore.getActivePlayerCount(t.id, month)
-            }))
+            .map(t => {
+                const stats = DataStore.getTeamScoreStats(t.id, month);
+                return {
+                    ...t,
+                    score: stats.total,
+                    current: stats.current,
+                    prev: stats.prev
+                };
+            })
             .sort((a, b) => b.score - a.score);
 
         if (!sorted.length) {
@@ -84,7 +91,8 @@ const UI = {
                     <td class="rank-col"><span class="rank-badge ${badgeClass}">${rank}</span></td>
                     <td><span class="team-name-cell">${team.name}</span></td>
                     <td class="score-col"><span class="score-value ${team.score >= 0 ? 'score-positive' : 'score-negative'}">${team.score.toFixed(2)}</span></td>
-                    <td><span class="players-count">${team.activeCount}명 출전</span></td>
+                    <td class="score-col"><span class="score-value ${team.current >= 0 ? 'score-positive' : 'score-negative'}">${team.current.toFixed(2)}</span></td>
+                    <td class="score-col hidden-mobile"><span class="score-value ${team.prev >= 0 ? 'score-positive' : 'score-negative'}">${team.prev.toFixed(2)}</span></td>
                     <td class="detail-col"><span class="detail-arrow">›</span></td>
                 </tr>
             `;

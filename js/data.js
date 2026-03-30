@@ -222,6 +222,24 @@ const DataStore = {
             .reduce((sum, name) => sum + (scores[name] || 0), 0);
     },
 
+    getTeamScoreStats(teamId, currentMonthStr) {
+        let total = 0;
+        let current = 0;
+        let prev = 0;
+
+        const monthIdx = SEASON_MONTHS.indexOf(currentMonthStr);
+        const prevMonthStr = monthIdx > 0 ? SEASON_MONTHS[monthIdx - 1] : null;
+
+        SEASON_MONTHS.forEach(m => {
+            const mv = this.getTeamScore(teamId, m);
+            total += mv;
+            if (m === currentMonthStr) current = mv;
+            if (m === prevMonthStr) prev = mv;
+        });
+
+        return { total, current, prev };
+    },
+
     getActivePlayerCount(teamId, month) {
         const roster = this.getMonthRoster(teamId, month);
         return Object.values(roster).filter(name => name && name.trim()).length;
