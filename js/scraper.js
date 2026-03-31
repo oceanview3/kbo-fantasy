@@ -6,8 +6,8 @@
 
 const Scraper = {
     CORS_PROXIES: [
+        'https://api.codetabs.com/v1/proxy?quest=',
         'https://api.allorigins.win/raw?url=',
-        'https://thingproxy.freeboard.io/fetch/',
         'https://corsproxy.io/?'
     ],
     BASE_URL: 'https://www.welcometopranking.com/baseball/',
