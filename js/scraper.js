@@ -115,7 +115,7 @@ const Scraper = {
                 totalPages++;
 
                 // Progress: 0% ~ 50%
-                const pct = Math.min(50, Math.round((totalPages / estimatedPages) * 50));
+                const pct = Math.min(50, Math.round((totalPages / 15) * 50));
                 this.reportProgress(pct, `타자 ${Object.keys(batters).length}명 수집 (${pg}페이지)...`);
 
             } catch (e) {
@@ -124,7 +124,7 @@ const Scraper = {
                 break;
             }
 
-            if (totalPages >= 8) break; // Safety limit
+            if (totalPages >= 15) break; // Increased from 8 to 15
         }
 
         // Progress: 50%
@@ -150,8 +150,8 @@ const Scraper = {
                 totalPages++;
 
                 // Progress: 50% ~ 90%
-                const pitcherProgress = totalPages - 8; // pages after batters
-                const pct = Math.min(90, 50 + Math.round((pitcherProgress / 6) * 40));
+                const pitcherProgress = pg; 
+                const pct = Math.min(90, 50 + Math.round((pitcherProgress / 10) * 40));
                 this.reportProgress(pct, `투수 ${Object.keys(pitchers).length}명 수집 (${pg}페이지)...`);
 
             } catch (e) {
@@ -160,7 +160,7 @@ const Scraper = {
                 break;
             }
 
-            if (totalPages >= 14) break;
+            if (pg >= 10) break; // Increased from 6 to 10
         }
 
         console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers`);
