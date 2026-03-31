@@ -1,56 +1,43 @@
 // ============================================
-// Client-side Scraper
-// 브라우저에서 직접 웰컴톱랭킹 점수를 스크래핑
-// CORS 프록시를 통해 HTML을 가져와서 파싱
+// Scraper Layer - Browser-side scraping with CORS Proxy
 // ============================================
 
 const Scraper = {
-    CORS_PROXIES: [
-        'https://api.codetabs.com/v1/proxy?quest=',
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?'
+    BASE_URL: "https://www.welcometopranking.com/baseball/",
+    
+    // Stable proxies
+    PROXIES: [
+        "https://api.codetabs.com/v1/proxy?quest=",
+        "https://corsproxy.io/?",
+        "https://api.allorigins.win/raw?url="
     ],
-    BASE_URL: 'https://www.welcometopranking.com/baseball/',
-    proxyIndex: 0,
 
-    sleep(ms) {
+    onProgress: null,
+
+    async sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     },
 
-    // Progress callback
-    onProgress: null,
-
-    getProxyUrl(targetUrl) {
-        const proxy = this.CORS_PROXIES[this.proxyIndex];
-        return proxy + encodeURIComponent(targetUrl);
-    },
-
     async fetchPage(url) {
-        // Try each proxy until one works
-        for (let i = 0; i < this.CORS_PROXIES.length; i++) {
-            const proxyIdx = (this.proxyIndex + i) % this.CORS_PROXIES.length;
-            const proxy = this.CORS_PROXIES[proxyIdx];
-            const proxyUrl = proxy + encodeURIComponent(url);
-
+        let lastError = null;
+        for (const proxy of this.PROXIES) {
             try {
-                const resp = await fetch(proxyUrl, {
-                    headers: { 'Accept': 'text/html' }
-                });
+                const proxyUrl = proxy + encodeURIComponent(url);
+                const resp = await fetch(proxyUrl);
                 if (resp.ok) {
-                    this.proxyIndex = proxyIdx; // Remember working proxy
                     return await resp.text();
                 }
             } catch (e) {
-                console.warn(`[Scraper] Proxy ${proxyIdx} failed:`, e.message);
+                lastError = e;
             }
         }
-        throw new Error('All CORS proxies failed');
+        throw lastError || new Error(`Fetch failed for ${url}`);
     },
 
     parseTable(html) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const rows = doc.querySelectorAll('table tbody tr');
+        const rows = doc.querySelectorAll('tbody tr');
         const players = {};
 
         rows.forEach(row => {
@@ -58,22 +45,19 @@ const Scraper = {
             if (cells.length < 4) return;
 
             try {
-                const rankText = cells[0].textContent.trim();
-                const rank = parseInt(rankText);
-                if (isNaN(rank) || rank <= 0) return;
-
-                const name = cells[1].textContent.trim().split('\n')[0].trim();
-                const team = cells[2].textContent.trim(); // Extract team (e.g., KT, KIA)
+                // Name and potential team in parentheses
+                const nameText = cells[1].textContent.trim().split('\n')[0].trim();
+                const teamText = cells[2].textContent.trim();
                 
-                // Validate KBO teams to prevent parsing Cloudflare Anti-Bot tables
-                const KBO_TEAMS = ['KIA', '삼성', 'LG', '두산', 'KT', 'SSG', '롯데', '한화', 'NC', '키움'];
-                if (!KBO_TEAMS.includes(team)) return;
-
+                // Cleanup name if it contains team or other artifacts
+                const name = nameText.split('(')[0].trim();
+                const team = teamText || (nameText.includes('(') ? nameText.match(/\((.*?)\)/)?.[1] : '');
+                
                 const scoreText = cells[3].textContent.trim().replace(',', '');
                 const score = parseFloat(scoreText);
 
                 if (name && name.length >= 2 && !isNaN(score)) {
-                    // Unique key: Name (Team)
+                    // Unique key: "Name (Team)"
                     const key = team ? `${name} (${team})` : name;
                     players[key] = score;
                 }
@@ -90,80 +74,74 @@ const Scraper = {
         const batters = {};
         const pitchers = {};
         let totalPages = 0;
-        const estimatedPages = 14; // ~8 batter + ~6 pitcher pages
 
         // Progress: 0% - start
         this.reportProgress(0, '타자 랭킹 수집 중...');
 
-        // Scrape batters
-        for (let pg = 1; pg <= 20; pg++) {
+        // Scrape batters - Scrape until no new players (max 30 pages)
+        for (let pg = 1; pg <= 30; pg++) {
             const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=T&page=${pg}`;
 
             try {
-                // Delay between requests to avoid rate limiting
                 if (pg > 1) await this.sleep(500); 
-
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
-                const newCount = Object.keys(players).filter(k => !(k in batters)).length;
+                
+                const beforeCount = Object.keys(batters).length;
+                Object.assign(batters, players);
+                const afterCount = Object.keys(batters).length;
+                const newCount = afterCount - beforeCount;
+
+                totalPages++;
+                this.reportProgress(Math.min(45, (pg / 15) * 45), `타자 ${afterCount}명 수집 (${pg}페이지)...`);
 
                 if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
                     break;
                 }
-
-                Object.assign(batters, players);
-                totalPages++;
-
-                // Progress: 0% ~ 50%
-                const pct = Math.min(50, Math.round((totalPages / 15) * 50));
-                this.reportProgress(pct, `타자 ${Object.keys(batters).length}명 수집 (${pg}페이지)...`);
-
             } catch (e) {
                 console.error(`[Scraper] Batter page ${pg} error:`, e);
-                if (pg === 1) throw e; // First page must work
+                if (pg === 1) throw e; 
                 break;
             }
-
-            if (totalPages >= 15) break; // Increased from 8 to 15
         }
 
         // Progress: 50%
         this.reportProgress(50, '투수 랭킹 수집 중...');
 
-        // Scrape pitchers
+        // Scrape pitchers - Scrape until no new players (max 20 pages)
         for (let pg = 1; pg <= 20; pg++) {
             const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=1&page=${pg}`;
 
             try {
-                // Delay between requests to avoid rate limiting
                 await this.sleep(500);
-
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
-                const newCount = Object.keys(players).filter(k => !(k in pitchers)).length;
+                
+                const beforeCount = Object.keys(pitchers).length;
+                Object.assign(pitchers, players);
+                const afterCount = Object.keys(pitchers).length;
+                const newCount = afterCount - beforeCount;
+
+                this.reportProgress(Math.min(90, 50 + (pg / 10) * 40), `투수 ${afterCount}명 수집 (${pg}페이지)...`);
 
                 if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
                     break;
                 }
-
-                Object.assign(pitchers, players);
-                totalPages++;
-
-                // Progress: 50% ~ 90%
-                const pitcherProgress = pg; 
-                const pct = Math.min(90, 50 + Math.round((pitcherProgress / 10) * 40));
-                this.reportProgress(pct, `투수 ${Object.keys(pitchers).length}명 수집 (${pg}페이지)...`);
-
             } catch (e) {
                 console.error(`[Scraper] Pitcher page ${pg} error:`, e);
                 if (pg === 1) throw e;
                 break;
             }
-
-            if (pg >= 10) break; // Increased from 6 to 10
         }
 
-        console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers`);
+        const totalCount = Object.keys(batters).length + Object.keys(pitchers).length;
+        console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers (Total: ${totalCount})`);
+        
+        // Final sanity check: KBO active rosters total around 350+ players (March may have fewer)
+        if (totalCount < 280) {
+            throw new Error(`수집된 선수(${totalCount}명)가 너무 적습니다. 업데이트가 거부되었습니다. (최소 280명 필요)`);
+        }
+
         return { batters, pitchers };
     },
 
@@ -173,7 +151,7 @@ const Scraper = {
         await db.collection('scores').doc(monthKey).set({
             players: scores,
             updated_at: new Date().toISOString(),
-            player_count: Object.keys(scores).length
+            player_count: Object.keys(scores.batters || {}).length + Object.keys(scores.pitchers || {}).length
         });
 
         this.reportProgress(100, '완료!');
@@ -183,6 +161,6 @@ const Scraper = {
         if (this.onProgress) {
             this.onProgress(percent, message);
         }
-        console.log(`[Scraper] ${percent}% - ${message}`);
+        console.log(`[Scraper] ${Math.round(percent)}% - ${message}`);
     }
 };

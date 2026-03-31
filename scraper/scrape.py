@@ -108,7 +108,7 @@ def scrape_position(search_date, position):
     pos_name = "타자" if position == "T" else "투수"
     all_players = {}
     
-    for pg in range(1, 20):
+    for pg in range(1, 40):
         url = (f"{BASE_URL}?p=chart&searchType=MONTHLY"
                f"&searchDate={search_date}&position={position}&page={pg}")
         
@@ -140,8 +140,9 @@ def scrape_position(search_date, position):
         
         all_players.update(players)
         print(f"  [{pos_name}] Page {pg}: {len(new_players)} new players")
-        
-        if len(players) < 20:
+
+        # Continue until truly no new players
+        if not players:
             break
     
     print(f"  [{pos_name}] Total: {len(all_players)} players")

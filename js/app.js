@@ -279,7 +279,7 @@ const App = {
                 const scores = await Scraper.scrapeAll(parseInt(monthParts[0]), monthNum);
                 
                 const totalPlayers = Object.keys(scores.batters || {}).length + Object.keys(scores.pitchers || {}).length;
-                if (totalPlayers >= 200) {
+                if (totalPlayers >= 280) {
                     // Upload to Firebase
                     if (this.useFirebase) {
                         await Scraper.uploadToFirebase(this.db, scores, targetMonth);
@@ -289,7 +289,7 @@ const App = {
                     data.scores[targetMonth] = scores;
                     DataStore.save(data);
                 } else {
-                    console.warn(`[App] Insufficient scores fetched for ${targetMonth} (${totalPlayers} players), skipping update to prevent data corruption. Minimum 200 required.`);
+                    console.warn(`[App] Insufficient scores fetched for ${targetMonth} (${totalPlayers} players), skipping update to prevent data corruption. Minimum 280 required.`);
                     failedMonths.push(targetMonth);
                 }
             }
