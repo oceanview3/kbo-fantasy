@@ -7,10 +7,15 @@
 const Scraper = {
     CORS_PROXIES: [
         'https://api.allorigins.win/raw?url=',
+        'https://thingproxy.freeboard.io/fetch/',
         'https://corsproxy.io/?'
     ],
     BASE_URL: 'https://www.welcometopranking.com/baseball/',
     proxyIndex: 0,
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
 
     // Progress callback
     onProgress: null,
@@ -95,6 +100,9 @@ const Scraper = {
             const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=T&page=${pg}`;
 
             try {
+                // Delay between requests to avoid rate limiting
+                if (pg > 1) await this.sleep(500); 
+
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
                 const newCount = Object.keys(players).filter(k => !(k in batters)).length;
@@ -127,6 +135,9 @@ const Scraper = {
             const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=1&page=${pg}`;
 
             try {
+                // Delay between requests to avoid rate limiting
+                await this.sleep(500);
+
                 const html = await this.fetchPage(url);
                 const players = this.parseTable(html);
                 const newCount = Object.keys(players).filter(k => !(k in pitchers)).length;
