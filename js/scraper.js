@@ -6,8 +6,8 @@
 
 const Scraper = {
     CORS_PROXIES: [
-        'https://corsproxy.io/?',
-        'https://api.allorigins.win/raw?url='
+        'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?'
     ],
     BASE_URL: 'https://www.welcometopranking.com/baseball/',
     proxyIndex: 0,
@@ -59,6 +59,11 @@ const Scraper = {
 
                 const name = cells[1].textContent.trim().split('\n')[0].trim();
                 const team = cells[2].textContent.trim(); // Extract team (e.g., KT, KIA)
+                
+                // Validate KBO teams to prevent parsing Cloudflare Anti-Bot tables
+                const KBO_TEAMS = ['KIA', '삼성', 'LG', '두산', 'KT', 'SSG', '롯데', '한화', 'NC', '키움'];
+                if (!KBO_TEAMS.includes(team)) return;
+
                 const scoreText = cells[3].textContent.trim().replace(',', '');
                 const score = parseFloat(scoreText);
 

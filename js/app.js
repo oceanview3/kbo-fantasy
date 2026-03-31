@@ -242,11 +242,13 @@ const App = {
 
         overlay.classList.add('active');
         barFill.style.width = '0%';
+        barFill.style.backgroundColor = ''; // Reset color
         percentEl.textContent = '0%';
         
         // Find months to update (from March to current month)
         const currentIdx = SEASON_MONTHS.indexOf(this.currentMonth);
         const monthsToFetch = currentIdx >= 0 ? SEASON_MONTHS.slice(0, currentIdx + 1) : [this.currentMonth];
+        let failedMonths = [];
         
         try {
             for (let i = 0; i < monthsToFetch.length; i++) {
@@ -270,7 +272,8 @@ const App = {
                 // Scrape from welcometopranking
                 const scores = await Scraper.scrapeAll(parseInt(monthParts[0]), monthNum);
                 
-                if (Object.keys(scores).length > 0) {
+                const totalPlayers = Object.keys(scores.batters || {}).length + Object.keys(scores.pitchers || {}).length;
+                if (totalPlayers >= 50) {
                     // Upload to Firebase
                     if (this.useFirebase) {
                         await Scraper.uploadToFirebase(this.db, scores, targetMonth);
@@ -279,6 +282,9 @@ const App = {
                     const data = DataStore.load();
                     data.scores[targetMonth] = scores;
                     DataStore.save(data);
+                } else {
+                    console.warn(`[App] Insufficient scores fetched for ${targetMonth} (${totalPlayers} players), skipping update to prevent data corruption.`);
+                    failedMonths.push(targetMonth);
                 }
             }
 
@@ -287,13 +293,23 @@ const App = {
             if (this.currentDetailTeamId) this.refreshTeamDetail();
             await this.updateLastUpdated();
 
-            statusEl.textContent = `전체 기간 업데이트 완료!`;
-            barFill.style.width = '100%';
-            percentEl.textContent = '100%';
+            if (failedMonths.length > 0) {
+                statusEl.textContent = `경고: 사이트 차단 의심 (${failedMonths.join(', ')})`;
+                barFill.style.width = '100%';
+                percentEl.textContent = '100%';
+                barFill.style.backgroundColor = '#f44336'; // Red color for error
+                
+                await new Promise(r => setTimeout(r, 2000));
+                this.showToast(`⚠️ 프록시 차단: 최신 점수 수집에 실패했습니다.`);
+            } else {
+                statusEl.textContent = `전체 기간 업데이트 완료!`;
+                barFill.style.width = '100%';
+                percentEl.textContent = '100%';
 
-            // Keep overlay for a moment to show completion
-            await new Promise(r => setTimeout(r, 1200));
-            this.showToast(`전체 점수 업데이트 완료!`);
+                // Keep overlay for a moment to show completion
+                await new Promise(r => setTimeout(r, 1200));
+                this.showToast(`전체 점수 업데이트 완료!`);
+            }
 
         } catch (e) {
             console.error('[App] Refresh failed:', e);

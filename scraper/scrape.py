@@ -89,6 +89,7 @@ def parse_ranking_table(html):
             continue
         
         name = row[1].strip().split('\n')[0].strip()
+        team = row[2].strip()
         
         try:
             score = float(row[3].strip().replace(',', ''))
@@ -96,7 +97,8 @@ def parse_ranking_table(html):
             score = 0.0
         
         if name and rank > 0:
-            players[name] = score
+            key = f"{name} ({team})" if team else name
+            players[key] = score
     
     return players
 
@@ -157,14 +159,12 @@ def scrape_monthly_scores(year=2026, month=3):
 
     print("\n[타자 랭킹]")
     batters = scrape_position(search_date, "T")
-    all_players.update(batters)
 
     print("\n[투수 랭킹]")
     pitchers = scrape_position(search_date, "1")
-    all_players.update(pitchers)
 
-    print(f"\n총 {len(all_players)}명 점수 수집 완료")
-    return all_players
+    print(f"\n총 {len(batters) + len(pitchers)}명 점수 수집 완료")
+    return {"batters": batters, "pitchers": pitchers}
 
 
 def save_scores_local(scores, year, month):
@@ -174,7 +174,7 @@ def save_scores_local(scores, year, month):
     data = {
         "month": month_key,
         "updated_at": datetime.now().isoformat(),
-        "player_count": len(scores),
+        "player_count": len(scores.get("batters", {})) + len(scores.get("pitchers", {})),
         "players": scores
     }
     with open(filename, "w", encoding="utf-8") as f:
@@ -186,20 +186,30 @@ def upload_to_firebase(scores, year, month):
     month_key = f"{year}-{month:02d}"
     doc_url = f"{FIRESTORE_URL}/scores/{month_key}"
 
-    player_fields = {}
-    for name, score in scores.items():
-        player_fields[name] = {"doubleValue": score}
-
+    # Structure identical to JS Scraper for consistency
     doc = {
         "fields": {
             "players": {
-                "mapValue": {"fields": player_fields}
+                "mapValue": {
+                    "fields": {
+                        "batters": {
+                            "mapValue": {
+                                "fields": {name: {"doubleValue": score} for name, score in scores.get("batters", {}).items()}
+                            }
+                        },
+                        "pitchers": {
+                            "mapValue": {
+                                "fields": {name: {"doubleValue": score} for name, score in scores.get("pitchers", {}).items()}
+                            }
+                        }
+                    }
+                }
             },
             "updated_at": {
                 "stringValue": datetime.now().isoformat()
             },
             "player_count": {
-                "integerValue": str(len(scores))
+                "integerValue": str(len(scores.get("batters", {})) + len(scores.get("pitchers", {})))
             }
         }
     }
@@ -234,7 +244,11 @@ def main():
         print(f"\n{'='*50}")
         print(f"Top 10")
         print(f"{'='*50}")
-        sorted_players = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        
+        # Flatten all players for top 10 display
+        all_players = {**scores.get("batters", {}), **scores.get("pitchers", {})}
+        sorted_players = sorted(all_players.items(), key=lambda x: x[1], reverse=True)
+        
         for i, (name, score) in enumerate(sorted_players[:10], 1):
             print(f"  {i:2d}. {name:12s}  {score:8.2f}")
     else:
