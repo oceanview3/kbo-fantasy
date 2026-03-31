@@ -214,7 +214,7 @@ def upload_to_firebase(scores, year, month):
         }
     }
 
-    data = json.dumps(doc).encode("utf-8")
+    data = json.dumps(doc, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         doc_url, data=data, method="PATCH",
         headers={"Content-Type": "application/json"}

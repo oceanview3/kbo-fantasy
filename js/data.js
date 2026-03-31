@@ -228,9 +228,10 @@ const DataStore = {
     },
 
     isValidPlayerName(name) {
-        if (!name || name.length < 2) return false;
-        // Check if contains at least one Korean character (AC00-D7A3)
-        return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
+        if (!name || name.trim().length < 2) return false;
+        // Block obvious non-name garbage (like just numbers or symbols)
+        // Allow Korean, English, and basic symbols (for cases like "Name (Team)")
+        return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣a-zA-Z]/.test(name);
     },
 
     isPitcherSlot(slotKey) {
