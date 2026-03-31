@@ -53,8 +53,14 @@ const App = {
                 console.log('[App] Firebase is empty, uploading localStorage data...');
                 await this.uploadToFirebase();
             } else {
-                // Firebase has data: download to localStorage
-                console.log('[App] Loading data from Firebase...');
+                // Firebase has data: ALWAYS download to overwrite local cache
+                console.log('[App] Synchronizing with Firebase...');
+                
+                // Clear local memory first to ensure no stale data remains
+                const data = DataStore.load();
+                data.scores = {}; 
+                DataStore.save(data);
+                
                 await this.downloadFromFirebase();
             }
 

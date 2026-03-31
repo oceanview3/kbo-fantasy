@@ -213,7 +213,25 @@ const DataStore = {
     },
 
     // ── Scores ────────────────────────────────
-    getScores(month) { return this.load().scores[month] || {}; },
+    getScores(month) { 
+        const scores = this.load().scores[month];
+        if (!scores) return { batters: {}, pitchers: {} };
+        // Ensure structure is always nested
+        if (!scores.batters && !scores.pitchers) {
+            // If it's a flat object (backward compatibility), return it but log it
+            return scores; 
+        }
+        return {
+            batters: scores.batters || {},
+            pitchers: scores.pitchers || {}
+        };
+    },
+
+    isValidPlayerName(name) {
+        if (!name || name.length < 2) return false;
+        // Check if contains at least one Korean character (AC00-D7A3)
+        return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(name);
+    },
 
     isPitcherSlot(slotKey) {
         return ['SP1','SP2','SP3','SP4','SP5','RP1','RP2','RP3','RP4','RP5'].includes(slotKey);
@@ -223,7 +241,7 @@ const DataStore = {
         if (!player) return 0;
         const name = (typeof player === 'string' ? player : (player.name || '')).trim();
         const team = (typeof player === 'string' ? '' : player.team).trim();
-        if (!name) return 0;
+        if (!this.isValidPlayerName(name)) return 0;
 
         const monthScores = this.getScores(month);
         
