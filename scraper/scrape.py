@@ -23,39 +23,53 @@ class TableParser(HTMLParser):
     """Simple HTML parser to extract table rows"""
     def __init__(self):
         super().__init__()
+        self.in_thead = False
         self.in_tbody = False
         self.in_tr = False
         self.in_td = False
+        self.in_th = False
         self.current_row = []
         self.current_cell = ""
         self.rows = []
-        self.td_count = 0
+        self.headers = []
+        self.found_type01 = False
 
     def handle_starttag(self, tag, attrs):
-        if tag == "tbody":
+        attrs_dict = dict(attrs)
+        if tag == "table" and attrs_dict.get("class") == "type01":
+            self.found_type01 = True
+        elif tag == "thead":
+            self.in_thead = True
+        elif tag == "tbody":
             self.in_tbody = True
-        elif tag == "tr" and self.in_tbody:
+        elif tag == "tr" and (self.in_tbody or self.in_thead):
             self.in_tr = True
             self.current_row = []
-            self.td_count = 0
         elif tag == "td" and self.in_tr:
             self.in_td = True
             self.current_cell = ""
-            self.td_count += 1
+        elif tag == "th" and self.in_tr:
+            self.in_th = True
+            self.current_cell = ""
 
     def handle_endtag(self, tag):
-        if tag == "tbody":
+        if tag == "thead":
+            self.in_thead = False
+        elif tag == "tbody":
             self.in_tbody = False
         elif tag == "tr" and self.in_tr:
             self.in_tr = False
-            if self.current_row:
+            if self.in_tbody and self.current_row:
                 self.rows.append(self.current_row)
         elif tag == "td" and self.in_td:
             self.in_td = False
             self.current_row.append(self.current_cell.strip())
+        elif tag == "th" and self.in_th:
+            self.in_th = False
+            self.headers.append(self.current_cell.strip().lower())
 
     def handle_data(self, data):
-        if self.in_td:
+        if self.in_td or self.in_th:
             self.current_cell += data
 
 
@@ -77,6 +91,10 @@ def parse_ranking_table(html):
     parser = TableParser()
     parser.feed(html)
     
+    # is_valid: Check for table class and rank header
+    is_valid = parser.found_type01 and ("rank" in parser.headers or "순위" in parser.headers)
+    has_rank_1 = False
+    
     players = {}
     for row in parser.rows:
         if len(row) < 4:
@@ -84,7 +102,10 @@ def parse_ranking_table(html):
         
         # row[0]=순위, row[1]=선수명, row[2]=구단, row[3]=톱랭킹포인트
         try:
-            rank = int(row[0].strip())
+            rank_val = row[0].strip()
+            if rank_val == "1":
+                has_rank_1 = True
+            rank = int(rank_val)
         except ValueError:
             continue
         
@@ -99,8 +120,8 @@ def parse_ranking_table(html):
         if name and rank > 0:
             key = f"{name} ({team})" if team else name
             players[key] = score
-    
-    return players
+            
+    return players, is_valid, has_rank_1
 
 
 def scrape_position(search_date, position):
@@ -114,22 +135,21 @@ def scrape_position(search_date, position):
         
         try:
             html = fetch_page(url)
+            players, is_valid, has_rank_1 = parse_ranking_table(html)
+            
+            # Structural validation for Page 1
+            if pg == 1:
+                if not is_valid:
+                    print(f"  [{pos_name}] Page 1: Invalid table structure! (Blocked?)")
+                    break
+                if players and not has_rank_1:
+                    print(f"  [{pos_name}] Page 1: Rank 1 is missing!")
+                    break
         except Exception as e:
-            print(f"  [{pos_name}] Page {pg} fetch error: {e}")
+            print(f"  [{pos_name}] Page {pg} error: {e}")
             break
         
-        players = parse_ranking_table(html)
-        
         if not players:
-            if pg == 1:
-                print(f"  [{pos_name}] No data found on page 1!")
-                if "<table" in html:
-                    idx = html.find("<table")
-                    print(f"  [{pos_name}] Table found at position {idx}")
-                    print(f"  [{pos_name}] Snippet: {html[idx:idx+500]}")
-                else:
-                    print(f"  [{pos_name}] No <table> tag found!")
-                    print(f"  [{pos_name}] HTML length: {len(html)}")
             break
         
         # Check for duplicate data (pagination returning same page)

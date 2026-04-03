@@ -286,20 +286,15 @@ const App = {
                 // Scrape from welcometopranking
                 const scores = await Scraper.scrapeAll(parseInt(monthParts[0]), monthNum);
                 
-                const totalPlayers = Object.keys(scores.batters || {}).length + Object.keys(scores.pitchers || {}).length;
-                if (totalPlayers >= 280) {
-                    // Upload to Firebase
-                    if (this.useFirebase) {
-                        await Scraper.uploadToFirebase(this.db, scores, targetMonth);
-                    }
-                    // Update local data
-                    const data = DataStore.load();
-                    data.scores[targetMonth] = scores;
-                    DataStore.save(data);
-                } else {
-                    console.warn(`[App] Insufficient scores fetched for ${targetMonth} (${totalPlayers} players), skipping update to prevent data corruption. Minimum 280 required.`);
-                    failedMonths.push(targetMonth);
+                // If Scraper.scrapeAll didn't throw an error, we trust the structural validation.
+                // Upload to Firebase
+                if (this.useFirebase) {
+                    await Scraper.uploadToFirebase(this.db, scores, targetMonth);
                 }
+                // Update local data
+                const data = DataStore.load();
+                data.scores[targetMonth] = scores;
+                DataStore.save(data);
             }
 
             // Refresh UI

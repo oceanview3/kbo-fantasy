@@ -37,14 +37,25 @@ const Scraper = {
     parseTable(html) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
+        
+        // Structural Validation: Check for ranking table markers
+        // The site uses <table class="type01"> and <thead> with "Rank"
+        const table = doc.querySelector('table.type01');
+        const headers = Array.from(doc.querySelectorAll('th')).map(th => th.textContent.trim().toLowerCase());
+        const isStructureValid = !!table && (headers.includes('rank') || headers.includes('순위'));
+
         const rows = doc.querySelectorAll('tbody tr');
         const players = {};
+        let hasRank1 = false;
 
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
             if (cells.length < 4) return;
 
             try {
+                const rankText = cells[0].textContent.trim();
+                if (rankText === '1') hasRank1 = true;
+
                 // Name and potential team in parentheses
                 const nameText = cells[1].textContent.trim().split('\n')[0].trim();
                 const teamText = cells[2].textContent.trim();
@@ -66,15 +77,14 @@ const Scraper = {
             }
         });
 
-        return players;
+        return { players, isStructureValid, hasRank1 };
     },
 
     async scrapeAll(year, month) {
         const searchDate = `Y${year}M${String(month).padStart(2, '0')}`;
         const batters = {};
         const pitchers = {};
-        let totalPages = 0;
-
+        
         // Progress: 0% - start
         this.reportProgress(0, '타자 랭킹 수집 중...');
 
@@ -85,14 +95,19 @@ const Scraper = {
             try {
                 if (pg > 1) await this.sleep(500); 
                 const html = await this.fetchPage(url);
-                const players = this.parseTable(html);
+                const { players, isStructureValid, hasRank1 } = this.parseTable(html);
                 
+                // Strict validation for Page 1
+                if (pg === 1) {
+                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
+                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
+                }
+
                 const beforeCount = Object.keys(batters).length;
                 Object.assign(batters, players);
                 const afterCount = Object.keys(batters).length;
                 const newCount = afterCount - beforeCount;
 
-                totalPages++;
                 this.reportProgress(Math.min(45, (pg / 15) * 45), `타자 ${afterCount}명 수집 (${pg}페이지)...`);
 
                 if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
@@ -115,8 +130,14 @@ const Scraper = {
             try {
                 await this.sleep(500);
                 const html = await this.fetchPage(url);
-                const players = this.parseTable(html);
+                const { players, isStructureValid, hasRank1 } = this.parseTable(html);
                 
+                // Strict validation for Page 1
+                if (pg === 1) {
+                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
+                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
+                }
+
                 const beforeCount = Object.keys(pitchers).length;
                 Object.assign(pitchers, players);
                 const afterCount = Object.keys(pitchers).length;
@@ -137,9 +158,10 @@ const Scraper = {
         const totalCount = Object.keys(batters).length + Object.keys(pitchers).length;
         console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers (Total: ${totalCount})`);
         
-        // Final sanity check: KBO active rosters total around 350+ players (March may have fewer)
-        if (totalCount < 280) {
-            throw new Error(`수집된 선수(${totalCount}명)가 너무 적습니다. 업데이트가 거부되었습니다. (최소 280명 필요)`);
+        // Discarding player count threshold as requested.
+        // We trust the structural validation performed during parsing.
+        if (totalCount === 0) {
+            throw new Error(`수집된 선수가 한 명도 없습니다. (서버 응답 확인 필요)`);
         }
 
         return { batters, pitchers };
