@@ -53,9 +53,22 @@
                 <p class="section-desc">웰컴톱랭킹 누적 포인트 기준</p>
                 <div class="update-bar">
                     <span class="update-time" id="last-updated">마지막 업데이트: 불러오는 중...</span>
-                    <button class="btn-refresh" id="btn-refresh" title="점수 새로고침">
-                        <span class="refresh-icon">⟳</span> 새로고침
-                    </button>
+                    <div class="refresh-controls">
+                        <select id="select-refresh-month" class="select-month">
+                            <option value="all">전체 기간</option>
+                            <option value="2026-03">3월</option>
+                            <option value="2026-04" selected>4월</option>
+                            <option value="2026-05">5월</option>
+                            <option value="2026-06">6월</option>
+                            <option value="2026-07">7월</option>
+                            <option value="2026-08">8월</option>
+                            <option value="2026-09">9월</option>
+                            <option value="2026-10">10월</option>
+                        </select>
+                        <button class="btn-refresh" id="btn-refresh" title="점수 새로고침">
+                            <span class="refresh-icon">⟳</span> 새로고침
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="podium-section" id="podium-section">
@@ -156,14 +169,14 @@
 
     <footer class="footer">
         <div class="footer-inner">
-            <p>&copy; 2026 KBO Fantasy League. All rights reserved. <span style="opacity:0.3; font-size:10px;">v1.0.8</span></p>
+            <p>&copy; 2026 KBO Fantasy League. All rights reserved. <span style="opacity:0.3; font-size:10px;">v1.0.9</span></p>
         </div>
     </footer>
 
-    <script src="js/data.js?v=1.0.8"></script>
-    <script src="js/firebase-config.js?v=1.0.8"></script>
-    <script src="js/ui.js?v=1.0.8"></script>
-    <script src="js/scraper.js?v=1.0.8"></script>
-    <script src="js/app.js?v=1.0.8"></script>
+    <script src="js/data.js?v=1.0.9"></script>
+    <script src="js/firebase-config.js?v=1.0.9"></script>
+    <script src="js/ui.js?v=1.0.9"></script>
+    <script src="js/scraper.js?v=1.0.9"></script>
+    <script src="js/app.js?v=1.0.9"></script>
 </body>
 </html>

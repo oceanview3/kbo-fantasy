@@ -237,6 +237,9 @@ const App = {
     // Score Refresh
     // ==========================================
     async refreshScores() {
+        const selectMonth = document.getElementById('select-refresh-month');
+        const selectedValue = selectMonth ? selectMonth.value : 'all';
+        
         const btn = document.getElementById('btn-refresh');
         btn.classList.add('refreshing');
 
@@ -251,9 +254,14 @@ const App = {
         barFill.style.backgroundColor = ''; // Reset color
         percentEl.textContent = '0%';
         
-        // Find months to update (from March to current month)
-        const currentIdx = SEASON_MONTHS.indexOf(this.currentMonth);
-        const monthsToFetch = currentIdx >= 0 ? SEASON_MONTHS.slice(0, currentIdx + 1) : [this.currentMonth];
+        let monthsToFetch = [];
+        if (selectedValue === 'all') {
+            const currentIdx = SEASON_MONTHS.indexOf(this.currentMonth);
+            monthsToFetch = currentIdx >= 0 ? SEASON_MONTHS.slice(0, currentIdx + 1) : [this.currentMonth];
+        } else {
+            monthsToFetch = [selectedValue];
+        }
+        
         let failedMonths = [];
         
         try {
