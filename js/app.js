@@ -28,6 +28,12 @@ const App = {
         this.bindEvents();
         this.refreshDashboard();
 
+        // Auto-select current month in refresh dropdown
+        const selectMonth = document.getElementById('select-refresh-month');
+        if (selectMonth && this.currentMonth) {
+            selectMonth.value = this.currentMonth;
+        }
+
         // Try Firebase connection
         await this.initFirebase();
     },
