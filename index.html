@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 백투백 드림리그</title>
-    <meta name="description" content="지인들끼리 가상 KBO 팀을 구성하여 웰컴톱랭킹 점수로 대결하는 판타지 리그">
+    <title>2026 백투�??�림리그</title>
+    <meta name="description" content="지?�들?�리 가??KBO ?�??구성?�여 ?�컴?�랭???�수�??�결하???��?지 리그">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://oceanview3.github.io/kbo-fantasy/">
-    <meta property="og:title" content="2026 백투백 드림리그">
-    <meta property="og:description" content="KBO 판타지 리그 - 웰컴톱랭킹 실시간 점수 대시보드">
+    <meta property="og:title" content="2026 백투�??�림리그">
+    <meta property="og:description" content="KBO ?��?지 리그 - ?�컴?�랭???�시�??�수 ?�?�보??>
     <meta property="og:image" content="https://oceanview3.github.io/kbo-fantasy/assets/og-image.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://oceanview3.github.io/kbo-fantasy/">
-    <meta property="twitter:title" content="2026 백투백 드림리그">
-    <meta property="twitter:description" content="KBO 판타지 리그 - 웰컴톱랭킹 실시간 점수 대시보드">
+    <meta property="twitter:title" content="2026 백투�??�림리그">
+    <meta property="twitter:description" content="KBO ?��?지 리그 - ?�컴?�랭???�시�??�수 ?�?�보??>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,26 +28,26 @@
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
     <!-- Application Scripts -->
-    <script defer src="js/data.js?v=1.1.1"></script>
-    <script defer src="js/firebase-config.js?v=1.1.1"></script>
-    <script defer src="js/ui.js?v=1.1.1"></script>
-    <script defer src="js/scraper.js?v=1.1.1"></script>
-    <script defer src="js/app.js?v=1.1.1"></script>
+    <script defer src="js/data.js?v=1.1.3"></script>
+    <script defer src="js/firebase-config.js?v=1.1.3"></script>
+    <script defer src="js/ui.js?v=1.1.3"></script>
+    <script defer src="js/scraper.js?v=1.1.3"></script>
+    <script defer src="js/app.js?v=1.1.3"></script>
 </head>
 <body>
     <!-- Header -->
     <header class="header">
         <div class="header-inner">
             <div class="logo" id="logo-home">
-                <span class="logo-icon">⚾</span>
+                <span class="logo-icon">??/span>
                 <div class="logo-text">
-                    <span class="logo-title">2026 백투백 드림리그</span>
+                    <span class="logo-title">2026 백투�??�림리그</span>
                 </div>
             </div>
 
             <div class="header-nav" id="header-nav">
-                <button class="nav-btn active" data-target="view-dashboard">대시보드</button>
-                <button class="nav-btn" data-target="view-players">선수 관리</button>
+                <button class="nav-btn active" data-target="view-dashboard">?�?�보??/button>
+                <button class="nav-btn" data-target="view-players">?�수 관�?/button>
             </div>
         </div>
     </header>
@@ -58,25 +58,25 @@
         <section class="view active" id="view-dashboard">
             <div class="dashboard-header">
                 <h1 class="section-title">
-                    <span class="title-accent">🏆</span> 전체 순위
+                    <span class="title-accent">?��</span> ?�체 ?�위
                 </h1>
-                <p class="section-desc">웰컴톱랭킹 누적 포인트 기준</p>
+                <p class="section-desc">?�컴?�랭???�적 ?�인??기�?</p>
                 <div class="update-bar">
-                    <span class="update-time" id="last-updated">마지막 업데이트: 불러오는 중...</span>
+                    <span class="update-time" id="last-updated">마�?�??�데?�트: 불러?�는 �?..</span>
                     <div class="refresh-controls">
                         <select id="select-refresh-month" class="select-month">
-                            <option value="all">전체 기간</option>
-                            <option value="2026-03">3월</option>
-                            <option value="2026-04" selected>4월</option>
-                            <option value="2026-05">5월</option>
-                            <option value="2026-06">6월</option>
-                            <option value="2026-07">7월</option>
-                            <option value="2026-08">8월</option>
-                            <option value="2026-09">9월</option>
-                            <option value="2026-10">10월</option>
+                            <option value="all">?�체 기간</option>
+                            <option value="2026-03">3??/option>
+                            <option value="2026-04" selected>4??/option>
+                            <option value="2026-05">5??/option>
+                            <option value="2026-06">6??/option>
+                            <option value="2026-07">7??/option>
+                            <option value="2026-08">8??/option>
+                            <option value="2026-09">9??/option>
+                            <option value="2026-10">10??/option>
                         </select>
-                        <button class="btn-refresh" id="btn-refresh" title="점수 새로고침" aria-label="점수 새로고침">
-                            <span class="refresh-icon">⟳</span> 새로고침
+                        <button class="btn-refresh" id="btn-refresh" title="?�수 ?�로고침" aria-label="?�수 ?�로고침">
+                            <span class="refresh-icon">??/span> ?�로고침
                         </button>
                     </div>
                 </div>
@@ -88,11 +88,11 @@
                 <table class="ranking-table" id="ranking-table">
                     <thead>
                         <tr>
-                            <th scope="col" class="rank-col">순위</th>
-                            <th scope="col" class="team-col">팀</th>
-                            <th scope="col" class="score-col col-center" id="col-total-score">총 누적 점수</th>
-                            <th scope="col" class="score-col col-center" id="col-current-month">현재 월 점수</th>
-                            <th scope="col" class="score-col col-center hidden-mobile" id="col-prev-month">직전 월 점수</th>
+                            <th scope="col" class="rank-col">?�위</th>
+                            <th scope="col" class="team-col">?�</th>
+                            <th scope="col" class="score-col col-center" id="col-total-score">�??�적 ?�수</th>
+                            <th scope="col" class="score-col col-center" id="col-current-month">?�재 ???�수</th>
+                            <th scope="col" class="score-col col-center hidden-mobile" id="col-prev-month">직전 ???�수</th>
                             <th scope="col" class="detail-col"></th>
                         </tr>
                     </thead>
@@ -107,43 +107,43 @@
         <section class="view" id="view-players">
             <div class="dashboard-header">
                 <h1 class="section-title">
-                    <span class="title-accent">🔍</span> 선수 조회
+                    <span class="title-accent">?��</span> ?�수 조회
                 </h1>
-                <p class="section-desc">점수 조회 및 수동 수정</p>
+                <p class="section-desc">?�수 조회 �??�동 ?�정</p>
                 
                 <div class="filter-bar" style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
                     <select id="filter-month" class="select-month input-filter">
-                        <option value="2026-03">3월</option>
-                        <option value="2026-04" selected>4월</option>
-                        <option value="2026-05">5월</option>
-                        <option value="2026-06">6월</option>
-                        <option value="2026-07">7월</option>
-                        <option value="2026-08">8월</option>
-                        <option value="2026-09">9월</option>
-                        <option value="2026-10">10월</option>
+                        <option value="2026-03">3??/option>
+                        <option value="2026-04" selected>4??/option>
+                        <option value="2026-05">5??/option>
+                        <option value="2026-06">6??/option>
+                        <option value="2026-07">7??/option>
+                        <option value="2026-08">8??/option>
+                        <option value="2026-09">9??/option>
+                        <option value="2026-10">10??/option>
                     </select>
                     <select id="filter-fantasy-team" class="select-month input-filter">
-                        <option value="all">드림리그 팀 (전체)</option>
+                        <option value="all">?�림리그 ?� (?�체)</option>
                     </select>
                     <select id="filter-kbo-team" class="select-month input-filter">
-                        <option value="all">KBO 팀 (전체)</option>
+                        <option value="all">KBO ?� (?�체)</option>
                         <option value="KIA">KIA</option>
-                        <option value="삼성">삼성</option>
+                        <option value="?�성">?�성</option>
                         <option value="LG">LG</option>
-                        <option value="두산">두산</option>
+                        <option value="?�산">?�산</option>
                         <option value="KT">KT</option>
                         <option value="SSG">SSG</option>
-                        <option value="롯데">롯데</option>
-                        <option value="한화">한화</option>
+                        <option value="�?��">�?��</option>
+                        <option value="?�화">?�화</option>
                         <option value="NC">NC</option>
-                        <option value="키움">키움</option>
+                        <option value="?��?">?��?</option>
                     </select>
                     <select id="filter-position" class="select-month input-filter">
-                        <option value="all">포지션 (전체)</option>
-                        <option value="batter">타자</option>
-                        <option value="pitcher">투수</option>
+                        <option value="all">?��???(?�체)</option>
+                        <option value="batter">?�??/option>
+                        <option value="pitcher">?�수</option>
                     </select>
-                    <input type="text" id="filter-name" class="input" placeholder="선수명 검색" style="padding: 6px 10px; font-size: 12px; max-width: 120px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px;">
+                    <input type="text" id="filter-name" class="input" placeholder="?�수�?검?? style="padding: 6px 10px; font-size: 12px; max-width: 120px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px;">
                 </div>
             </div>
 
@@ -151,11 +151,11 @@
                 <table class="ranking-table" id="players-table">
                     <thead>
                         <tr>
-                            <th scope="col" class="name-col">선수명</th>
-                            <th scope="col" class="team-col">KBO 팀</th>
-                            <th scope="col" class="fteam-col">드림리그 팀</th>
-                            <th scope="col" class="pos-col">포지션</th>
-                            <th scope="col" class="score-col col-center">점수</th>
+                            <th scope="col" class="name-col">?�수�?/th>
+                            <th scope="col" class="team-col">KBO ?�</th>
+                            <th scope="col" class="fteam-col">?�림리그 ?�</th>
+                            <th scope="col" class="pos-col">?��???/th>
+                            <th scope="col" class="score-col col-center">?�수</th>
                         </tr>
                     </thead>
                     <tbody id="players-tbody">
@@ -172,27 +172,27 @@
         <div class="modal" id="team-modal">
             <div class="modal-header">
                 <div class="modal-team-info">
-                    <h2 class="modal-team-name" id="modal-team-name">팀 이름</h2>
+                    <h2 class="modal-team-name" id="modal-team-name">?� ?�름</h2>
                 </div>
                 <div class="modal-team-score">
-                    <span class="modal-score-label">월간 총점</span>
+                    <span class="modal-score-label">?�간 총점</span>
                     <span class="modal-score-value" id="modal-team-score">0.00</span>
                 </div>
-                <button class="modal-close" id="modal-close" aria-label="창 닫기">✕</button>
+                <button class="modal-close" id="modal-close" aria-label="�??�기">??/button>
             </div>
             <div class="modal-body">
                 <!-- Header: Month nav & Edit button -->
                 <div class="roster-header">
                     <div class="roster-month-nav">
-                        <button class="roster-month-arrow" id="roster-month-prev" aria-label="이전 달 명단 보기">‹</button>
-                        <span class="roster-month-label" id="roster-month-label">3월</span>
-                        <button class="roster-month-arrow" id="roster-month-next" aria-label="다음 달 명단 보기">›</button>
+                        <button class="roster-month-arrow" id="roster-month-prev" aria-label="?�전 ??명단 보기">??/button>
+                        <span class="roster-month-label" id="roster-month-label">3??/span>
+                        <button class="roster-month-arrow" id="roster-month-next" aria-label="?�음 ??명단 보기">??/button>
                     </div>
-                    <button class="btn btn-sm" id="btn-toggle-roster-edit">⚙️ 명단 수정</button>
+                    <button class="btn btn-sm" id="btn-toggle-roster-edit">?�️ 명단 ?�정</button>
                 </div>
                 <div class="roster-copy-row" id="roster-copy-row">
                     <button class="btn-copy-month" id="btn-copy-prev-month">
-                        ← 이전 달 명단 복사
+                        ???�전 ??명단 복사
                     </button>
                 </div>
                 <!-- Player list for selected month -->
@@ -208,15 +208,15 @@
     <div class="modal-overlay" id="add-team-overlay">
         <div class="modal modal-sm">
             <div class="modal-header">
-                <h2 class="modal-team-name">새 팀 추가</h2>
-                <button class="modal-close" id="add-team-close" aria-label="팀 추가 닫기">✕</button>
+                <h2 class="modal-team-name">???� 추�?</h2>
+                <button class="modal-close" id="add-team-close" aria-label="?� 추�? ?�기">??/button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>팀 이름</label>
-                    <input type="text" id="add-team-name" class="input" placeholder="예: 빌맙스">
+                    <label>?� ?�름</label>
+                    <input type="text" id="add-team-name" class="input" placeholder="?? 빌맙??>
                 </div>
-                <button class="btn btn-primary btn-full" id="btn-create-team">팀 생성</button>
+                <button class="btn btn-primary btn-full" id="btn-create-team">?� ?�성</button>
             </div>
         </div>
     </div>
@@ -224,8 +224,8 @@
     <!-- Progress Overlay -->
     <div class="progress-overlay" id="progress-overlay">
         <div class="progress-modal">
-            <div class="progress-title">점수 업데이트 중</div>
-            <div class="progress-status" id="progress-status">준비 중...</div>
+            <div class="progress-title">?�수 ?�데?�트 �?/div>
+            <div class="progress-status" id="progress-status">준�?�?..</div>
             <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="progress-bar-fill"></div>
             </div>
