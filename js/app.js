@@ -505,6 +505,30 @@ const App = {
         UI.renderPlayerLookup(players, month);
     },
 
+    toggleInlineEdit(idBase, month, posType, safeKey) {
+        const span = document.getElementById(`score-span-${idBase}`);
+        const input = document.getElementById(`score-input-${idBase}`);
+        const btn = document.getElementById(`score-btn-${idBase}`);
+        
+        if (span.style.display !== 'none') {
+            // Edit Mode
+            span.style.display = 'none';
+            input.style.display = 'inline-block';
+            input.focus();
+            
+            btn.textContent = '확인';
+            btn.classList.add('btn-primary');
+            btn.onclick = () => this.saveInlineScore(month, posType, safeKey, input.value);
+        } else {
+            // Toggle back (cancel)
+            span.style.display = 'inline-block';
+            input.style.display = 'none';
+            btn.textContent = '✏️ 수정';
+            btn.classList.remove('btn-primary');
+            btn.onclick = () => this.toggleInlineEdit(idBase, month, posType, safeKey);
+        }
+    },
+
     async saveInlineScore(month, posType, key, valueStr) {
         const nameOnly = key.split('(')[0].trim();
         const newScore = parseFloat(valueStr);
