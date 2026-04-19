@@ -410,7 +410,7 @@ const App = {
     // ==========================================
     refreshDashboard() {
         const teams = DataStore.getTeams();
-        UI.renderPodium(teams, this.currentMonth);
+        UI.renderChart(teams, this.currentMonth);
         UI.renderRankingTable(teams, this.currentMonth);
     },
 

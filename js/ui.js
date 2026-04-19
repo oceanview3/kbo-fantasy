@@ -12,14 +12,10 @@ const UI = {
         return `<span class="score-zero">${formatted}</span>`;
     },
 
-    // Render podium (top 3 teams)
-    renderPodium(teams, month) {
-        const container = document.getElementById('podium-section');
-        if (!teams.length) {
-            container.innerHTML = '';
-            return;
-        }
+    chartInstance: null,
 
+    // Render bar chart
+    renderChart(teams, month) {
         const sorted = teams
             .map(t => {
                 const stats = DataStore.getTeamScoreStats(t.id, month);
@@ -27,23 +23,44 @@ const UI = {
             })
             .sort((a, b) => b.score - a.score);
 
-        const top3 = sorted.slice(0, 3);
-        const classes = ['first', 'second', 'third'];
-        const medals = ['🥇', '🥈', '🥉'];
+        const ctx = document.getElementById('ranking-chart');
+        if (!ctx) return;
 
-        container.innerHTML = top3.map((team, i) => `
-            <div class="podium-card ${classes[i]}" data-team-id="${team.id}">
-                <div class="podium-rank">${i + 1}</div>
-                <div class="podium-team-name">${team.name}</div>
-                <div class="podium-score">${team.score.toFixed(2)}</div>
-            </div>
-        `).join('');
+        if (this.chartInstance) {
+            this.chartInstance.destroy();
+        }
 
-        // Add click handlers
-        container.querySelectorAll('.podium-card').forEach(card => {
-            card.addEventListener('click', () => {
-                App.openTeamDetail(card.dataset.teamId);
-            });
+        this.chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sorted.map(t => t.name),
+                datasets: [{
+                    label: '점수',
+                    data: sorted.map(t => parseFloat(t.score.toFixed(2))),
+                    backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                    }
+                }
+            }
         });
     },
 

@@ -26,13 +26,16 @@
     <!-- Firebase -->
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Application Scripts -->
-    <script defer src="js/data.js?v=1.1.5"></script>
-    <script defer src="js/firebase-config.js?v=1.1.5"></script>
-    <script defer src="js/ui.js?v=1.1.5"></script>
-    <script defer src="js/scraper.js?v=1.1.5"></script>
-    <script defer src="js/app.js?v=1.1.5"></script>
+    <script defer src="js/data.js?v=1.2.0"></script>
+    <script defer src="js/firebase-config.js?v=1.2.0"></script>
+    <script defer src="js/ui.js?v=1.2.0"></script>
+    <script defer src="js/scraper.js?v=1.2.0"></script>
+    <script defer src="js/app.js?v=1.2.0"></script>
 </head>
 <body>
     <!-- Header -->
@@ -81,8 +84,8 @@
                     </div>
                 </div>
             </div>
-            <div class="podium-section" id="podium-section">
-                <!-- Top 3 podium rendered by JS -->
+            <div class="chart-section" id="chart-section" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 24px;">
+                <canvas id="ranking-chart" style="width: 100%; height: 250px;"></canvas>
             </div>
             <div class="ranking-table-wrapper">
                 <table class="ranking-table" id="ranking-table">
