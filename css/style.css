@@ -23,7 +23,7 @@
     /* Text */
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
-    --text-muted: #64748b;
+    --text-muted: #8e9db0;
     --text-accent: #fbbf24;
 
     /* Borders */
@@ -58,6 +58,11 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
 }
 
 html {

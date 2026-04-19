@@ -24,8 +24,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+KR:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <!-- Application Scripts -->
+    <script defer src="js/data.js?v=1.1.1"></script>
+    <script defer src="js/firebase-config.js?v=1.1.1"></script>
+    <script defer src="js/ui.js?v=1.1.1"></script>
+    <script defer src="js/scraper.js?v=1.1.1"></script>
+    <script defer src="js/app.js?v=1.1.1"></script>
 </head>
 <body>
     <!-- Header -->
@@ -65,7 +72,7 @@
                             <option value="2026-09">9월</option>
                             <option value="2026-10">10월</option>
                         </select>
-                        <button class="btn-refresh" id="btn-refresh" title="점수 새로고침">
+                        <button class="btn-refresh" id="btn-refresh" title="점수 새로고침" aria-label="점수 새로고침">
                             <span class="refresh-icon">⟳</span> 새로고침
                         </button>
                     </div>
@@ -78,12 +85,12 @@
                 <table class="ranking-table" id="ranking-table">
                     <thead>
                         <tr>
-                            <th class="rank-col">순위</th>
-                            <th class="team-col">팀</th>
-                            <th class="score-col col-center" id="col-total-score">총 누적 점수</th>
-                            <th class="score-col col-center" id="col-current-month">현재 월 점수</th>
-                            <th class="score-col col-center hidden-mobile" id="col-prev-month">직전 월 점수</th>
-                            <th class="detail-col"></th>
+                            <th scope="col" class="rank-col">순위</th>
+                            <th scope="col" class="team-col">팀</th>
+                            <th scope="col" class="score-col col-center" id="col-total-score">총 누적 점수</th>
+                            <th scope="col" class="score-col col-center" id="col-current-month">현재 월 점수</th>
+                            <th scope="col" class="score-col col-center hidden-mobile" id="col-prev-month">직전 월 점수</th>
+                            <th scope="col" class="detail-col"></th>
                         </tr>
                     </thead>
                     <tbody id="ranking-tbody">
@@ -107,15 +114,15 @@
                     <span class="modal-score-label">월간 총점</span>
                     <span class="modal-score-value" id="modal-team-score">0.00</span>
                 </div>
-                <button class="modal-close" id="modal-close">✕</button>
+                <button class="modal-close" id="modal-close" aria-label="창 닫기">✕</button>
             </div>
             <div class="modal-body">
                 <!-- Header: Month nav & Edit button -->
                 <div class="roster-header">
                     <div class="roster-month-nav">
-                        <button class="roster-month-arrow" id="roster-month-prev">‹</button>
+                        <button class="roster-month-arrow" id="roster-month-prev" aria-label="이전 달 명단 보기">‹</button>
                         <span class="roster-month-label" id="roster-month-label">3월</span>
-                        <button class="roster-month-arrow" id="roster-month-next">›</button>
+                        <button class="roster-month-arrow" id="roster-month-next" aria-label="다음 달 명단 보기">›</button>
                     </div>
                     <button class="btn btn-sm" id="btn-toggle-roster-edit">⚙️ 명단 수정</button>
                 </div>
@@ -138,7 +145,7 @@
         <div class="modal modal-sm">
             <div class="modal-header">
                 <h2 class="modal-team-name">새 팀 추가</h2>
-                <button class="modal-close" id="add-team-close">✕</button>
+                <button class="modal-close" id="add-team-close" aria-label="팀 추가 닫기">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -173,10 +180,5 @@
         </div>
     </footer>
 
-    <script src="js/data.js?v=1.1.1"></script>
-    <script src="js/firebase-config.js?v=1.1.1"></script>
-    <script src="js/ui.js?v=1.1.1"></script>
-    <script src="js/scraper.js?v=1.1.1"></script>
-    <script src="js/app.js?v=1.1.1"></script>
 </body>
 </html>

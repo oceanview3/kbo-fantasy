@@ -80,86 +80,76 @@ const Scraper = {
         return { players, isStructureValid, hasRank1 };
     },
 
+    async _scrapeConcurrently(position, maxPages, searchDate, progressBase, progressMax, label) {
+        const allPlayers = {};
+        const chunkSize = 5;
+
+        for (let i = 1; i <= maxPages; i += chunkSize) {
+            const promises = [];
+            for (let j = 0; j < chunkSize && (i + j) <= maxPages; j++) {
+                const pg = i + j;
+                const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=${position}&page=${pg}`;
+                promises.push(this.fetchPage(url).then(html => ({ pg, html })).catch(e => {
+                    console.error(`[Scraper] ${label} page ${pg} error:`, e);
+                    return { pg, error: e };
+                }));
+            }
+
+            const results = await Promise.all(promises);
+            let noMoreData = false;
+
+            results.sort((a, b) => a.pg - b.pg);
+
+            for (const res of results) {
+                if (res.error) {
+                    if (res.pg === 1) throw res.error;
+                    break;
+                }
+
+                const { players, isStructureValid, hasRank1 } = this.parseTable(res.html);
+
+                if (res.pg === 1) {
+                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
+                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
+                }
+
+                const beforeCount = Object.keys(allPlayers).length;
+                Object.assign(allPlayers, players);
+                const afterCount = Object.keys(allPlayers).length;
+                const newCount = afterCount - beforeCount;
+
+                if (Object.keys(players).length === 0 || (newCount === 0 && res.pg > 1)) {
+                    noMoreData = true;
+                }
+            }
+
+            const currentCount = Object.keys(allPlayers).length;
+            const currentPg = Math.min(i + chunkSize - 1, maxPages);
+            const progress = progressBase + Math.min(progressMax, (currentPg / maxPages) * progressMax);
+            
+            this.reportProgress(progress, `${label} ${currentCount}명 수집 (~${currentPg}페이지)...`);
+
+            if (noMoreData) break;
+
+            if (i + chunkSize <= maxPages) {
+                await this.sleep(300); // short delay between chunks
+            }
+        }
+        return allPlayers;
+    },
+
     async scrapeAll(year, month) {
         const searchDate = `Y${year}M${String(month).padStart(2, '0')}`;
-        const batters = {};
-        const pitchers = {};
         
-        // Progress: 0% - start
         this.reportProgress(0, '타자 랭킹 수집 중...');
+        const batters = await this._scrapeConcurrently('T', 30, searchDate, 0, 45, '타자');
 
-        // Scrape batters - Scrape until no new players (max 30 pages)
-        for (let pg = 1; pg <= 30; pg++) {
-            const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=T&page=${pg}`;
-
-            try {
-                if (pg > 1) await this.sleep(500); 
-                const html = await this.fetchPage(url);
-                const { players, isStructureValid, hasRank1 } = this.parseTable(html);
-                
-                // Strict validation for Page 1
-                if (pg === 1) {
-                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
-                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
-                }
-
-                const beforeCount = Object.keys(batters).length;
-                Object.assign(batters, players);
-                const afterCount = Object.keys(batters).length;
-                const newCount = afterCount - beforeCount;
-
-                this.reportProgress(Math.min(45, (pg / 15) * 45), `타자 ${afterCount}명 수집 (${pg}페이지)...`);
-
-                if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
-                    break;
-                }
-            } catch (e) {
-                console.error(`[Scraper] Batter page ${pg} error:`, e);
-                if (pg === 1) throw e; 
-                break;
-            }
-        }
-
-        // Progress: 50%
         this.reportProgress(50, '투수 랭킹 수집 중...');
-
-        // Scrape pitchers - Scrape until no new players (max 20 pages)
-        for (let pg = 1; pg <= 20; pg++) {
-            const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=1&page=${pg}`;
-
-            try {
-                await this.sleep(500);
-                const html = await this.fetchPage(url);
-                const { players, isStructureValid, hasRank1 } = this.parseTable(html);
-                
-                // Strict validation for Page 1
-                if (pg === 1) {
-                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
-                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
-                }
-
-                const beforeCount = Object.keys(pitchers).length;
-                Object.assign(pitchers, players);
-                const afterCount = Object.keys(pitchers).length;
-                const newCount = afterCount - beforeCount;
-
-                this.reportProgress(Math.min(90, 50 + (pg / 10) * 40), `투수 ${afterCount}명 수집 (${pg}페이지)...`);
-
-                if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
-                    break;
-                }
-            } catch (e) {
-                console.error(`[Scraper] Pitcher page ${pg} error:`, e);
-                if (pg === 1) throw e;
-                break;
-            }
-        }
+        const pitchers = await this._scrapeConcurrently('1', 20, searchDate, 50, 40, '투수');
 
         const totalCount = Object.keys(batters).length + Object.keys(pitchers).length;
         console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers (Total: ${totalCount})`);
         
-        // Discarding player count threshold as requested.
-        // We trust the structural validation performed during parsing.
         if (totalCount === 0) {
             throw new Error(`수집된 선수가 한 명도 없습니다. (서버 응답 확인 필요)`);
         }
