@@ -159,6 +159,7 @@ const UI = {
                 else { posText = '타자'; posClass = 'active'; }
             }
             const posBadge = `<span class="roster-chip ${posClass}">${posText}</span>`;
+            const safeKey = p.key.replace(/'/g, "\\'");
             const idBase = btoa(encodeURIComponent(p.key)).replace(/=/g, '');
             const spanId = `score-span-${idBase}`;
             const inputId = `score-input-${idBase}`;
