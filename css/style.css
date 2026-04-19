@@ -1322,46 +1322,18 @@ body {
     .header-inner { padding: 0 12px; }
     .logo-title { font-size: 16px; }
     
-    /* Update bar hide for mobile (moved to FAB) */
+    /* Update bar mobile */
     .update-bar {
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 2px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
         margin-top: 8px;
+        width: 100%;
     }
     
     .update-time { font-size: 11px; }
-    
-    /* Refresh Button as FAB */
-    #btn-refresh {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        width: 60px;
-        height: 60px;
-        border-radius: 30px;
-        background: linear-gradient(135deg, var(--accent-blue), #2563eb);
-        color: white;
-        box-shadow: 0 8px 30px rgba(37, 99, 235, 0.4);
-        z-index: 500;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        border: none;
-        font-size: 0; /* Hide text */
-        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    
-    #btn-refresh:active {
-        transform: scale(0.9);
-    }
-    
-    #btn-refresh .refresh-icon {
-        font-size: 28px;
-        margin-right: 0;
-    }
 
     /* Podium: Horizontal Mini-Podium */
     .podium-section {
@@ -1427,11 +1399,12 @@ body {
     }
 
     .ranking-table {
-        min-width: 600px;
+        min-width: 100%;
+        font-size: 12px;
     }
 
     .ranking-table th, .ranking-table td {
-        padding: 12px 10px;
+        padding: 8px 4px;
     }
 
     .team-name-cell {
