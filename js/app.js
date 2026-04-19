@@ -228,17 +228,18 @@ const App = {
                     // Populate fantasy team options if empty
                     const fTeamSelect = document.getElementById('filter-fantasy-team');
                     if (fTeamSelect.children.length === 1) {
-                        const optNone = document.createElement('option');
-                        optNone.value = 'none';
-                        optNone.textContent = '드림리그 팀 없음 (-)';
-                        fTeamSelect.appendChild(optNone);
-
                         DataStore.getTeams().forEach(t => {
                             const opt = document.createElement('option');
                             opt.value = t.id;
                             opt.textContent = t.name;
                             fTeamSelect.appendChild(opt);
                         });
+
+                        const optNone = document.createElement('option');
+                        optNone.value = 'none';
+                        optNone.textContent = '드림리그 팀 없음 (-)';
+                        fTeamSelect.appendChild(optNone);
+
                         // Set default month to current month
                         const monthSelect = document.getElementById('filter-month');
                         if (monthSelect.querySelector(`option[value="${this.currentMonth}"]`)) {
