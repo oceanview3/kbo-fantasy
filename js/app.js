@@ -446,7 +446,7 @@ const App = {
                     const pName = typeof player === 'string' ? player : player.name;
                     const pTeam = typeof player === 'string' ? '' : player.team;
                     const mapKey = pTeam ? `${pName} (${pTeam})` : pName;
-                    fTeamMap[mapKey] = t;
+                    fTeamMap[mapKey] = { id: t.id, name: t.name, slotKey: slotKey };
                 }
             }
         });
@@ -460,6 +460,7 @@ const App = {
             }
             p.fTeamId = f ? f.id : '';
             p.fTeamName = f ? f.name : '-';
+            p.slotKey = f ? f.slotKey : '';
         });
 
         players = players.filter(p => {
@@ -469,7 +470,23 @@ const App = {
             return true;
         });
 
-        players.sort((a, b) => b.score - a.score);
+        const sortOrder = { 'batter': 1, 'sp': 2, 'rp': 3, 'bench': 4, 'none': 5 };
+        const getSlotGroup = (slotKey) => {
+            if (!slotKey) return 'none';
+            if (slotKey.startsWith('BN')) return 'bench';
+            if (slotKey.startsWith('SP')) return 'sp';
+            if (slotKey.startsWith('RP')) return 'rp';
+            return 'batter';
+        };
+
+        players.sort((a, b) => {
+            if (fTeam !== 'all') {
+                const groupA = sortOrder[getSlotGroup(a.slotKey)];
+                const groupB = sortOrder[getSlotGroup(b.slotKey)];
+                if (groupA !== groupB) return groupA - groupB;
+            }
+            return b.score - a.score;
+        });
 
         UI.renderPlayerLookup(players, month);
     },

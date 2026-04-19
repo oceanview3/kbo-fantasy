@@ -150,7 +150,15 @@ const UI = {
 
         tbody.innerHTML = players.map(p => {
             const scoreClass = p.score > 0 ? 'score-positive' : p.score < 0 ? 'score-negative' : 'score-zero';
-            const posBadge = p.posType === 'batter' ? '<span class="roster-chip active">타자</span>' : '<span class="roster-chip bench">투수</span>';
+            let posText = p.posType === 'batter' ? '타자' : '투수';
+            let posClass = p.posType === 'batter' ? 'active' : 'bench';
+            if (p.slotKey) {
+                if (p.slotKey.startsWith('BN')) { posText = '후보'; posClass = ''; }
+                else if (p.slotKey.startsWith('SP')) { posText = '선발'; posClass = 'active'; }
+                else if (p.slotKey.startsWith('RP')) { posText = '구원'; posClass = 'active'; }
+                else { posText = '타자'; posClass = 'active'; }
+            }
+            const posBadge = `<span class="roster-chip ${posClass}">${posText}</span>`;
             const safeKey = p.key.replace(/'/g, "\\'");
             return `
                 <tr>
