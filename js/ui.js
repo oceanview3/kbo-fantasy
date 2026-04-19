@@ -151,11 +151,11 @@ const UI = {
         tbody.innerHTML = players.map(p => {
             const scoreClass = p.score > 0 ? 'score-positive' : p.score < 0 ? 'score-negative' : 'score-zero';
             let posText = p.posType === 'batter' ? '타자' : '투수';
-            let posClass = p.posType === 'batter' ? 'active' : 'bench';
+            let posClass = p.posType === 'batter' ? 'active' : 'pitcher';
             if (p.slotKey) {
-                if (p.slotKey.startsWith('BN')) { posText = '후보'; posClass = ''; }
-                else if (p.slotKey.startsWith('SP')) { posText = '선발'; posClass = 'active'; }
-                else if (p.slotKey.startsWith('RP')) { posText = '구원'; posClass = 'active'; }
+                if (p.slotKey.startsWith('BN')) { posText = '후보'; posClass = 'bench'; }
+                else if (p.slotKey.startsWith('SP')) { posText = '선발'; posClass = 'pitcher'; }
+                else if (p.slotKey.startsWith('RP')) { posText = '구원'; posClass = 'pitcher'; }
                 else { posText = '타자'; posClass = 'active'; }
             }
             const posBadge = `<span class="roster-chip ${posClass}">${posText}</span>`;
