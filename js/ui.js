@@ -23,41 +23,100 @@ const UI = {
             })
             .sort((a, b) => b.score - a.score);
 
-        const ctx = document.getElementById('ranking-chart');
-        if (!ctx) return;
+        const ctxNode = document.getElementById('ranking-chart');
+        if (!ctxNode) return;
+        const ctx = ctxNode.getContext('2d');
 
         if (this.chartInstance) {
             this.chartInstance.destroy();
         }
 
+        // Apply Premium Design Gradients based on Rank
+        const createGrad = (c1, c2) => {
+            const g = ctx.createLinearGradient(0, 0, 0, 300);
+            g.addColorStop(0, c1);
+            g.addColorStop(1, c2);
+            return g;
+        };
+
+        const bgColors = sorted.map((_, i) => {
+            if (i === 0) return createGrad('rgba(253, 224, 71, 0.9)', 'rgba(217, 119, 6, 0.9)'); // 1st - Gold
+            if (i === 1) return createGrad('rgba(203, 213, 225, 0.9)', 'rgba(100, 116, 139, 0.9)'); // 2nd - Silver
+            if (i === 2) return createGrad('rgba(253, 186, 116, 0.9)', 'rgba(194, 65, 12, 0.9)'); // 3rd - Bronze
+            return createGrad('rgba(56, 189, 248, 0.8)', 'rgba(37, 99, 235, 0.8)'); // Base blue
+        });
+        
+        const borderColors = sorted.map((_, i) => {
+            if (i === 0) return 'rgba(253, 224, 71, 1)';
+            if (i === 1) return 'rgba(203, 213, 225, 1)';
+            if (i === 2) return 'rgba(253, 186, 116, 1)';
+            return 'rgba(56, 189, 248, 1)';
+        });
+
         this.chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: sorted.map(t => t.name),
+                labels: sorted.map(t => t.name.substring(0, 2)),
                 datasets: [{
                     label: '점수',
                     data: sorted.map(t => parseFloat(t.score.toFixed(2))),
-                    backgroundColor: 'rgba(37, 99, 235, 0.7)',
-                    borderColor: 'rgba(37, 99, 235, 1)',
+                    backgroundColor: bgColors,
+                    borderColor: borderColors,
                     borderWidth: 1,
-                    borderRadius: 6
+                    borderRadius: 6,
+                    barPercentage: 0.6,
+                    categoryPercentage: 0.8
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutQuart'
+                },
                 plugins: {
-                    legend: { display: false }
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleFont: { size: 13, family: "'Pretendard', sans-serif" },
+                        bodyFont: { size: 14, family: "'Pretendard', sans-serif", weight: 'bold' },
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        titleColor: 'rgba(148, 163, 184, 1)',
+                        callbacks: {
+                            title: (ctx) => {
+                                // Find full name for tooltip
+                                const idx = ctx[0].dataIndex;
+                                return sorted[idx].name + " 점수";
+                            },
+                            label: (context) => '✨ ' + context.raw.toFixed(2) + ' 점'
+                        }
+                    }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        border: { display: false },
+                        grid: { 
+                            color: 'rgba(255, 255, 255, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: { 
+                            color: 'rgba(148, 163, 184, 0.8)',
+                            font: { family: "'Pretendard', sans-serif", size: 11 },
+                            padding: 8
+                        }
                     },
                     x: {
-                        grid: { display: false },
-                        ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+                        border: { display: false },
+                        grid: { display: false, drawBorder: false },
+                        ticks: { 
+                            color: 'rgba(241, 245, 249, 1)',
+                            font: { family: "'Pretendard', sans-serif", size: 13, weight: 'bold' },
+                            padding: 6
+                        }
                     }
                 }
             }
