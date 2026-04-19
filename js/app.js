@@ -447,6 +447,12 @@ const App = {
                     const pTeam = typeof player === 'string' ? '' : player.team;
                     const mapKey = pTeam ? `${pName} (${pTeam})` : pName;
                     fTeamMap[mapKey] = { id: t.id, name: t.name, slotKey: slotKey };
+                    
+                    if (!players.find(p => p.key === mapKey)) {
+                        let posType = 'batter';
+                        if (slotKey.startsWith('SP') || slotKey.startsWith('RP')) posType = 'pitcher';
+                        players.push({ key: mapKey, name: pName, kTeam: pTeam, posType, score: 0 });
+                    }
                 }
             }
         });
