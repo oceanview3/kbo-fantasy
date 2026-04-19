@@ -159,8 +159,10 @@ const UI = {
                 else { posText = '타자'; posClass = 'active'; }
             }
             const posBadge = `<span class="roster-chip ${posClass}">${posText}</span>`;
-            const safeKey = p.key.replace(/'/g, "\\'");
-            const inputId = `score-input-${btoa(encodeURIComponent(p.key)).replace(/=/g, '')}`;
+            const idBase = btoa(encodeURIComponent(p.key)).replace(/=/g, '');
+            const spanId = `score-span-${idBase}`;
+            const inputId = `score-input-${idBase}`;
+            const btnId = `score-btn-${idBase}`;
             return `
                 <tr>
                     <td class="team-name-cell">${p.name}</td>
@@ -168,10 +170,11 @@ const UI = {
                     <td>${p.fTeamName}</td>
                     <td>${posBadge}</td>
                     <td class="score-col">
-                        <input type="number" step="0.01" id="${inputId}" value="${p.score.toFixed(2)}" class="input input-sm" style="width: 70px; text-align:right; padding: 4px; font-size:13px; background:var(--bg-input); border:1px solid var(--border); color:var(--text-primary); border-radius:4px;" onkeydown="if(event.key==='Enter') App.saveInlineScore('${month}', '${p.posType}', '${safeKey}', this.value)">
+                        <span id="${spanId}" class="score-value ${scoreClass}">${p.score.toFixed(2)}</span>
+                        <input type="number" step="0.01" id="${inputId}" value="${p.score.toFixed(2)}" class="input input-sm no-spinners" style="display:none; width: 70px; text-align:right; padding: 4px; font-size:13px; background:var(--bg-input); border:1px solid var(--border); color:var(--text-primary); border-radius:4px;" onkeydown="if(event.key==='Enter') App.saveInlineScore('${month}', '${p.posType}', '${safeKey}', this.value); if(event.key==='Escape') App.toggleInlineEdit('${idBase}', '${month}', '${p.posType}', '${safeKey}')">
                     </td>
                     <td class="action-col" style="text-align:center;">
-                        <button class="btn btn-sm btn-primary" style="padding: 4px 8px;" onclick="App.saveInlineScore('${month}', '${p.posType}', '${safeKey}', document.getElementById('${inputId}').value)">확인</button>
+                        <button class="btn btn-sm" id="${btnId}" style="padding: 4px 8px;" onclick="App.toggleInlineEdit('${idBase}', '${month}', '${p.posType}', '${safeKey}')">✏️ 수정</button>
                     </td>
                 </tr>
             `;
