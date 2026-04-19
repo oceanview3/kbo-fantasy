@@ -228,6 +228,11 @@ const App = {
                     // Populate fantasy team options if empty
                     const fTeamSelect = document.getElementById('filter-fantasy-team');
                     if (fTeamSelect.children.length === 1) {
+                        const optNone = document.createElement('option');
+                        optNone.value = 'none';
+                        optNone.textContent = '드림리그 팀 없음 (-)';
+                        fTeamSelect.appendChild(optNone);
+
                         DataStore.getTeams().forEach(t => {
                             const opt = document.createElement('option');
                             opt.value = t.id;
@@ -470,7 +475,10 @@ const App = {
         });
 
         players = players.filter(p => {
-            if (fTeam !== 'all' && p.fTeamId !== fTeam) return false;
+            if (fTeam !== 'all') {
+                if (fTeam === 'none' && p.fTeamId !== '') return false;
+                if (fTeam !== 'none' && p.fTeamId !== fTeam) return false;
+            }
             if (kboTeam !== 'all' && (!p.kTeam || !p.kTeam.includes(kboTeam))) return false;
             if (nameQuery && !p.name.toLowerCase().includes(nameQuery)) return false;
             return true;
@@ -497,12 +505,9 @@ const App = {
         UI.renderPlayerLookup(players, month);
     },
 
-    async editPlayerScore(month, posType, key, currentScore) {
+    async saveInlineScore(month, posType, key, valueStr) {
         const nameOnly = key.split('(')[0].trim();
-        const input = prompt(`${month.split('-')[1]}월 - ${nameOnly}의 기존 점수: ${currentScore}\n\n강제로 수정할 새 점수를 입력하세요:`);
-        if (input === null || input.trim() === '') return;
-        
-        const newScore = parseFloat(input);
+        const newScore = parseFloat(valueStr);
         if (isNaN(newScore)) {
             this.showToast('⚠️ 올바른 숫자를 입력하세요.');
             return;
@@ -536,7 +541,7 @@ const App = {
         this.refreshDashboard();
         if (this.currentDetailTeamId) this.refreshTeamDetail();
         
-        this.showToast(`${nameOnly} 점수가 ${newScore.toFixed(2)}로 수동 수정되었습니다.`);
+        this.showToast(`${nameOnly} 점수가 ${newScore.toFixed(2)}로 저장되었습니다.`);
     },
 
 

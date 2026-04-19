@@ -160,15 +160,18 @@ const UI = {
             }
             const posBadge = `<span class="roster-chip ${posClass}">${posText}</span>`;
             const safeKey = p.key.replace(/'/g, "\\'");
+            const inputId = `score-input-${btoa(encodeURIComponent(p.key)).replace(/=/g, '')}`;
             return `
                 <tr>
                     <td class="team-name-cell">${p.name}</td>
                     <td>${p.kTeam || '-'}</td>
                     <td>${p.fTeamName}</td>
                     <td>${posBadge}</td>
-                    <td class="score-col"><span class="score-value ${scoreClass}">${p.score.toFixed(2)}</span></td>
+                    <td class="score-col">
+                        <input type="number" step="0.01" id="${inputId}" value="${p.score.toFixed(2)}" class="input input-sm" style="width: 70px; text-align:right; padding: 4px; font-size:13px; background:var(--bg-input); border:1px solid var(--border); color:var(--text-primary); border-radius:4px;" onkeydown="if(event.key==='Enter') App.saveInlineScore('${month}', '${p.posType}', '${safeKey}', this.value)">
+                    </td>
                     <td class="action-col" style="text-align:center;">
-                        <button class="btn btn-sm" style="padding: 4px 8px;" onclick="App.editPlayerScore('${month}', '${p.posType}', '${safeKey}', ${p.score})">✏️ 수정</button>
+                        <button class="btn btn-sm btn-primary" style="padding: 4px 8px;" onclick="App.saveInlineScore('${month}', '${p.posType}', '${safeKey}', document.getElementById('${inputId}').value)">확인</button>
                     </td>
                 </tr>
             `;
