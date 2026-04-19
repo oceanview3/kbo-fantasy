@@ -39,17 +39,11 @@ const UI = {
             return g;
         };
 
-        const bgColors = sorted.map((_, i) => {
-            if (i === 0) return createGrad('rgba(253, 224, 71, 0.9)', 'rgba(217, 119, 6, 0.9)'); // 1st - Gold
-            if (i === 1) return createGrad('rgba(203, 213, 225, 0.9)', 'rgba(100, 116, 139, 0.9)'); // 2nd - Silver
-            if (i === 2) return createGrad('rgba(253, 186, 116, 0.9)', 'rgba(194, 65, 12, 0.9)'); // 3rd - Bronze
-            return createGrad('rgba(56, 189, 248, 0.8)', 'rgba(37, 99, 235, 0.8)'); // Base blue
+        const bgColors = sorted.map(() => {
+            return createGrad('rgba(56, 189, 248, 0.8)', 'rgba(37, 99, 235, 0.8)'); // Uniform blue
         });
         
-        const borderColors = sorted.map((_, i) => {
-            if (i === 0) return 'rgba(253, 224, 71, 1)';
-            if (i === 1) return 'rgba(203, 213, 225, 1)';
-            if (i === 2) return 'rgba(253, 186, 116, 1)';
+        const borderColors = sorted.map(() => {
             return 'rgba(56, 189, 248, 1)';
         });
 
