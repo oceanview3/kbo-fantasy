@@ -214,6 +214,43 @@ const App = {
             if (e.target === document.getElementById('modal-overlay')) this.closeTeamDetail();
         });
 
+        // Nav buttons
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                const targetId = e.target.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
+
+                if (targetId === 'view-players') {
+                    // Populate fantasy team options if empty
+                    const fTeamSelect = document.getElementById('filter-fantasy-team');
+                    if (fTeamSelect.children.length === 1) {
+                        DataStore.getTeams().forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t.id;
+                            opt.textContent = t.name;
+                            fTeamSelect.appendChild(opt);
+                        });
+                        // Set default month to current month
+                        const monthSelect = document.getElementById('filter-month');
+                        if (monthSelect.querySelector(`option[value="${this.currentMonth}"]`)) {
+                            monthSelect.value = this.currentMonth;
+                        }
+                    }
+                    this.refreshPlayerLookup();
+                }
+            });
+        });
+
+        // Player lookup filters
+        ['filter-month', 'filter-fantasy-team', 'filter-kbo-team', 'filter-position'].forEach(id => {
+            document.getElementById(id).addEventListener('change', () => this.refreshPlayerLookup());
+        });
+        document.getElementById('filter-name').addEventListener('input', () => this.refreshPlayerLookup());
+
         // Modal tabs (removed)
         // Add team modal (removed)
         // Team editing (removed)
@@ -369,6 +406,114 @@ const App = {
         const teams = DataStore.getTeams();
         UI.renderPodium(teams, this.currentMonth);
         UI.renderRankingTable(teams, this.currentMonth);
+    },
+
+    // ==========================================
+    // Player Lookup
+    // ==========================================
+    refreshPlayerLookup() {
+        const month = document.getElementById('filter-month').value;
+        const fTeam = document.getElementById('filter-fantasy-team').value;
+        const kboTeam = document.getElementById('filter-kbo-team').value;
+        const position = document.getElementById('filter-position').value;
+        const nameQuery = document.getElementById('filter-name').value.toLowerCase().trim();
+
+        const scores = DataStore.getScores(month);
+        let players = [];
+
+        const addPlayers = (pool, posType) => {
+            if (!pool) return;
+            for (const [key, score] of Object.entries(pool)) {
+                let name = key;
+                let kTeam = '';
+                if (key.includes('(')) {
+                    name = key.split('(')[0].trim();
+                    kTeam = key.match(/\((.*?)\)/)[1];
+                }
+                players.push({ key, name, kTeam, posType, score });
+            }
+        };
+
+        if (position === 'all' || position === 'batter') addPlayers(scores.batters || {}, 'batter');
+        if (position === 'all' || position === 'pitcher') addPlayers(scores.pitchers || {}, 'pitcher');
+
+        const fTeamMap = {};
+        DataStore.getTeams().forEach(t => {
+            const roster = DataStore.getMonthRoster(t.id, month);
+            for (const slotKey in roster) {
+                const player = roster[slotKey];
+                if (player) {
+                    const pName = typeof player === 'string' ? player : player.name;
+                    const pTeam = typeof player === 'string' ? '' : player.team;
+                    const mapKey = pTeam ? `${pName} (${pTeam})` : pName;
+                    fTeamMap[mapKey] = t;
+                }
+            }
+        });
+
+        players.forEach(p => {
+            let mapKey = p.kTeam ? `${p.name} (${p.kTeam})` : p.name;
+            let f = fTeamMap[mapKey];
+            if (!f && !p.kTeam) {
+                const fuzzyKey = Object.keys(fTeamMap).find(k => k === p.name || k.startsWith(`${p.name} (`));
+                if (fuzzyKey) f = fTeamMap[fuzzyKey];
+            }
+            p.fTeamId = f ? f.id : '';
+            p.fTeamName = f ? f.name : '-';
+        });
+
+        players = players.filter(p => {
+            if (fTeam !== 'all' && p.fTeamId !== fTeam) return false;
+            if (kboTeam !== 'all' && (!p.kTeam || !p.kTeam.includes(kboTeam))) return false;
+            if (nameQuery && !p.name.toLowerCase().includes(nameQuery)) return false;
+            return true;
+        });
+
+        players.sort((a, b) => b.score - a.score);
+
+        UI.renderPlayerLookup(players, month);
+    },
+
+    async editPlayerScore(month, posType, key, currentScore) {
+        const nameOnly = key.split('(')[0].trim();
+        const input = prompt(`${month.split('-')[1]}월 - ${nameOnly}의 기존 점수: ${currentScore}\n\n강제로 수정할 새 점수를 입력하세요:`);
+        if (input === null || input.trim() === '') return;
+        
+        const newScore = parseFloat(input);
+        if (isNaN(newScore)) {
+            this.showToast('⚠️ 올바른 숫자를 입력하세요.');
+            return;
+        }
+
+        const data = DataStore.load();
+        if (!data.scores[month]) data.scores[month] = { batters: {}, pitchers: {} };
+        const pool = posType === 'pitcher' ? data.scores[month].pitchers : data.scores[month].batters;
+        if (!pool) return;
+        
+        pool[key] = newScore;
+        DataStore.save(data);
+
+        // Upload to Firebase
+        if (this.useFirebase) {
+            this.showToast('서버 동기화 중...');
+            try {
+                // Ensure Scraper formatting exists
+                await this.db.collection('scores').doc(month).set({
+                    players: data.scores[month],
+                    updated_at: new Date().toISOString(),
+                    player_count: Object.keys(data.scores[month].batters || {}).length + Object.keys(data.scores[month].pitchers || {}).length
+                });
+            } catch(e) {
+                console.error("Firebase sync error on score override:", e);
+                this.showToast('⚠️ 서버 동기화 실패 (로컬 업데이트만 됨)');
+            }
+        }
+
+        this.refreshPlayerLookup();
+        this.refreshDashboard();
+        if (this.currentDetailTeamId) this.refreshTeamDetail();
+        
+        this.showToast(`${nameOnly} 점수가 ${newScore.toFixed(2)}로 수동 수정되었습니다.`);
     },
 
 

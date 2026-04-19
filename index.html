@@ -45,7 +45,10 @@
                 </div>
             </div>
 
-            <!-- Removed month selector -->
+            <div class="header-nav" id="header-nav">
+                <button class="nav-btn active" data-target="view-dashboard">대시보드</button>
+                <button class="nav-btn" data-target="view-players">선수 관리</button>
+            </div>
         </div>
     </header>
 
@@ -100,6 +103,68 @@
             </div>
         </section>
 
+        <!-- Player Lookup View -->
+        <section class="view" id="view-players">
+            <div class="dashboard-header">
+                <h1 class="section-title">
+                    <span class="title-accent">🔍</span> 선수 조회
+                </h1>
+                <p class="section-desc">점수 조회 및 수동 수정</p>
+                
+                <div class="filter-bar" style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <select id="filter-month" class="select-month input-filter">
+                        <option value="2026-03">3월</option>
+                        <option value="2026-04" selected>4월</option>
+                        <option value="2026-05">5월</option>
+                        <option value="2026-06">6월</option>
+                        <option value="2026-07">7월</option>
+                        <option value="2026-08">8월</option>
+                        <option value="2026-09">9월</option>
+                        <option value="2026-10">10월</option>
+                    </select>
+                    <select id="filter-fantasy-team" class="select-month input-filter">
+                        <option value="all">판타지 팀 (전체)</option>
+                    </select>
+                    <select id="filter-kbo-team" class="select-month input-filter">
+                        <option value="all">KBO 팀 (전체)</option>
+                        <option value="KIA">KIA</option>
+                        <option value="삼성">삼성</option>
+                        <option value="LG">LG</option>
+                        <option value="두산">두산</option>
+                        <option value="KT">KT</option>
+                        <option value="SSG">SSG</option>
+                        <option value="롯데">롯데</option>
+                        <option value="한화">한화</option>
+                        <option value="NC">NC</option>
+                        <option value="키움">키움</option>
+                    </select>
+                    <select id="filter-position" class="select-month input-filter">
+                        <option value="all">포지션 (전체)</option>
+                        <option value="batter">타자</option>
+                        <option value="pitcher">투수</option>
+                    </select>
+                    <input type="text" id="filter-name" class="input" placeholder="선수명 검색" style="padding: 6px 10px; font-size: 12px; max-width: 120px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px;">
+                </div>
+            </div>
+
+            <div class="ranking-table-wrapper" style="margin-top: 24px;">
+                <table class="ranking-table" id="players-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="name-col">선수명</th>
+                            <th scope="col" class="team-col">KBO 팀</th>
+                            <th scope="col" class="fteam-col">판타지 팀</th>
+                            <th scope="col" class="pos-col">포지션</th>
+                            <th scope="col" class="score-col col-center">점수</th>
+                            <th scope="col" class="action-col col-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="players-tbody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
     </main>
 

@@ -128,6 +128,45 @@ const UI = {
             });
         });
     },
+
+    // Render player lookup table
+    renderPlayerLookup(players, month) {
+        const tbody = document.getElementById('players-tbody');
+
+        if (!players || !players.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <div class="empty-icon">🔍</div>
+                            <div class="empty-text">검색 결과가 없습니다</div>
+                            <div class="empty-desc">조건을 변경해 보세요.</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = players.map(p => {
+            const scoreClass = p.score > 0 ? 'score-positive' : p.score < 0 ? 'score-negative' : 'score-zero';
+            const posBadge = p.posType === 'batter' ? '<span class="roster-chip active">타자</span>' : '<span class="roster-chip bench">투수</span>';
+            const safeKey = p.key.replace(/'/g, "\\'");
+            return `
+                <tr>
+                    <td class="team-name-cell">${p.name}</td>
+                    <td>${p.kTeam || '-'}</td>
+                    <td>${p.fTeamName}</td>
+                    <td>${posBadge}</td>
+                    <td class="score-col"><span class="score-value ${scoreClass}">${p.score.toFixed(2)}</span></td>
+                    <td class="action-col" style="text-align:center;">
+                        <button class="btn btn-sm" style="padding: 4px 8px;" onclick="App.editPlayerScore('${month}', '${p.posType}', '${safeKey}', ${p.score})">✏️ 수정</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    },
+
     // Month formatting
     formatMonth(monthStr) {
         const [year, month] = monthStr.split('-');
