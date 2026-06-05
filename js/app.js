@@ -300,7 +300,7 @@ const App = {
 
         overlay.classList.add('active');
         barFill.style.width = '0%';
-        barFill.style.backgroundColor = ''; // Reset color
+        barFill.style.backgroundColor = '';
         percentEl.textContent = '0%';
         
         let monthsToFetch = [];
@@ -311,74 +311,77 @@ const App = {
             monthsToFetch = [selectedValue];
         }
         
+        let successMonths = [];
         let failedMonths = [];
         
-        try {
-            for (let i = 0; i < monthsToFetch.length; i++) {
-                const targetMonth = monthsToFetch[i];
-                const monthParts = targetMonth.split('-');
-                const monthNum = parseInt(monthParts[1]);
+        for (let i = 0; i < monthsToFetch.length; i++) {
+            const targetMonth = monthsToFetch[i];
+            const monthParts = targetMonth.split('-');
+            const monthNum = parseInt(monthParts[1]);
+            
+            statusEl.textContent = `${monthNum}월 점수 업데이트 중...`;
+
+            Scraper.onProgress = (percent, message) => {
+                const stepBase = (i / monthsToFetch.length) * 100;
+                const stepProgress = (percent / monthsToFetch.length);
+                const totalPercent = Math.round(stepBase + stepProgress);
                 
-                statusEl.textContent = `${monthNum}월 점수 업데이트 중...`;
+                barFill.style.width = totalPercent + '%';
+                percentEl.textContent = totalPercent + '%';
+                statusEl.textContent = `[${monthNum}월] ${message}`;
+            };
 
-                // Set up progress callback for this month's scraping
-                Scraper.onProgress = (percent, message) => {
-                    const stepBase = (i / monthsToFetch.length) * 100;
-                    const stepProgress = (percent / monthsToFetch.length);
-                    const totalPercent = Math.round(stepBase + stepProgress);
-                    
-                    barFill.style.width = totalPercent + '%';
-                    percentEl.textContent = totalPercent + '%';
-                    statusEl.textContent = `[${monthNum}월] ${message}`;
-                };
-
-                // Scrape from welcometopranking
+            try {
                 const scores = await Scraper.scrapeAll(parseInt(monthParts[0]), monthNum);
                 
-                // If Scraper.scrapeAll didn't throw an error, we trust the structural validation.
-                // Upload to Firebase
+                // 성공한 경우에만 데이터 저장 (기존 데이터 보호)
                 if (this.useFirebase) {
                     await Scraper.uploadToFirebase(this.db, scores, targetMonth);
                 }
-                // Update local data
                 const data = DataStore.load();
                 data.scores[targetMonth] = scores;
                 DataStore.save(data);
+                successMonths.push(monthNum);
+            } catch (e) {
+                console.error(`[App] ${monthNum}월 수집 실패:`, e.message);
+                failedMonths.push({ month: monthNum, error: e.message });
+                // 실패해도 다음 월 계속 시도
             }
+        }
 
-            // Refresh UI
+        // UI 새로고침 (성공한 월이 있으면)
+        if (successMonths.length > 0) {
             this.refreshDashboard();
             if (this.currentDetailTeamId) this.refreshTeamDetail();
             await this.updateLastUpdated();
-
-            if (failedMonths.length > 0) {
-                statusEl.textContent = `경고: 사이트 차단 의심 (${failedMonths.join(', ')})`;
-                barFill.style.width = '100%';
-                percentEl.textContent = '100%';
-                barFill.style.backgroundColor = '#f44336'; // Red color for error
-                
-                await new Promise(r => setTimeout(r, 2000));
-                this.showToast(`⚠️ 프록시 차단: 최신 점수 수집에 실패했습니다.`);
-            } else {
-                statusEl.textContent = `전체 기간 업데이트 완료!`;
-                barFill.style.width = '100%';
-                percentEl.textContent = '100%';
-
-                // Keep overlay for a moment to show completion
-                await new Promise(r => setTimeout(r, 1200));
-                this.showToast(`전체 점수 업데이트 완료!`);
-            }
-
-        } catch (e) {
-            console.error('[App] Refresh failed:', e);
-            statusEl.textContent = '오류: ' + e.message;
-            await new Promise(r => setTimeout(r, 2000));
-            this.showToast('업데이트 실패: ' + e.message);
-        } finally {
-            overlay.classList.remove('active');
-            btn.classList.remove('refreshing');
-            barFill.style.width = '0%';
         }
+
+        // 결과 메시지 표시
+        if (failedMonths.length === 0) {
+            statusEl.textContent = `업데이트 완료! (${successMonths.map(m => m+'월').join(', ')})`;
+            barFill.style.width = '100%';
+            percentEl.textContent = '100%';
+            await new Promise(r => setTimeout(r, 1200));
+            this.showToast(`✅ 점수 업데이트 완료!`);
+        } else if (successMonths.length > 0) {
+            statusEl.textContent = `일부 완료: ${failedMonths.map(f => f.month+'월 실패').join(', ')}`;
+            barFill.style.width = '100%';
+            percentEl.textContent = '100%';
+            barFill.style.backgroundColor = '#ff9800';
+            await new Promise(r => setTimeout(r, 2000));
+            this.showToast(`⚠️ ${successMonths.map(m=>m+'월').join(',')} 성공, ${failedMonths.map(f=>f.month+'월').join(',')} 실패`);
+        } else {
+            statusEl.textContent = `수집 실패: ${failedMonths[0].error}`;
+            barFill.style.width = '100%';
+            barFill.style.backgroundColor = '#f44336';
+            percentEl.textContent = '!';
+            await new Promise(r => setTimeout(r, 2500));
+            this.showToast(`❌ 점수 수집 실패 - 기존 데이터는 유지됩니다. 잠시 후 다시 시도해주세요.`);
+        }
+
+        overlay.classList.remove('active');
+        btn.classList.remove('refreshing');
+        barFill.style.width = '0%';
     },
 
     async updateLastUpdated() {
