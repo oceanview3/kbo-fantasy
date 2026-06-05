@@ -128,7 +128,7 @@ const Scraper = {
                 const scoreText = cells[3].textContent.trim().replace(',', '');
                 const score = parseFloat(scoreText);
 
-                if (name && name.length >= 2 && !isNaN(score) && score > 0) {
+                if (name && name.length >= 2 && !isNaN(score)) {
                     const key = team ? `${name} (${team})` : name;
                     players[key] = score;
                 }
