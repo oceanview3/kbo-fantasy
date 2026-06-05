@@ -5,8 +5,9 @@
 const Scraper = {
     BASE_URL: "https://www.welcometopranking.com/baseball/",
     
-    // 프록시 목록 (안정적인 순서로 정렬)
+    // 프록시 목록 (개인용 Google Apps Script 프록시 우선)
     PROXIES: [
+        "https://script.google.com/macros/s/AKfycbwuWoHDtYdGjoKcFI154Qzs4xsTVdgvUnlZoFTCQ4sqrfpEhpv19Px4snfQVo4mzJleRQ/exec?url=",
         "https://api.allorigins.win/raw?url=",
         "https://corsproxy.io/?",
         "https://api.codetabs.com/v1/proxy?quest=",
