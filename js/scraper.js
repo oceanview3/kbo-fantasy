@@ -5,11 +5,13 @@
 const Scraper = {
     BASE_URL: "https://www.welcometopranking.com/baseball/",
     
-    // Stable proxies
+    // 프록시 목록 (안정적인 순서로 정렬)
     PROXIES: [
-        "https://api.codetabs.com/v1/proxy?quest=",
+        "https://api.allorigins.win/raw?url=",
         "https://corsproxy.io/?",
-        "https://api.allorigins.win/raw?url="
+        "https://api.codetabs.com/v1/proxy?quest=",
+        "https://thingproxy.freeboard.io/fetch/",
+        "https://cors-anywhere.herokuapp.com/"
     ],
 
     onProgress: null,
@@ -18,28 +20,88 @@ const Scraper = {
         return new Promise(resolve => setTimeout(resolve, ms));
     },
 
+    /**
+     * CloudFlare 차단 페이지 등 비정상 응답인지 검사
+     */
+    isBlockedResponse(html) {
+        if (!html || html.length < 200) return true;
+        
+        const blockedSignals = [
+            'cf-browser-verification',
+            'cf_chl_opt',
+            'challenge-platform',
+            'Just a moment',
+            'Checking your browser',
+            'Enable JavaScript and cookies',
+            'Attention Required',
+            'Access denied',
+            'Error 1005',
+            'Error 1006',
+            'Error 1015',
+            '<title>403',
+            '<title>503',
+        ];
+        
+        const htmlLower = html.toLowerCase();
+        return blockedSignals.some(signal => htmlLower.includes(signal.toLowerCase()));
+    },
+
+    /**
+     * 응답 HTML에 실제 랭킹 테이블이 있는지 빠르게 확인
+     */
+    hasRankingTable(html) {
+        return html.includes('type01') && 
+               (html.includes('<tbody') || html.includes('<TBODY')) &&
+               (html.includes('<td') || html.includes('<TD'));
+    },
+
     async fetchPage(url) {
         let lastError = null;
-        for (const proxy of this.PROXIES) {
+        
+        for (let i = 0; i < this.PROXIES.length; i++) {
+            const proxy = this.PROXIES[i];
             try {
                 const proxyUrl = proxy + encodeURIComponent(url);
-                const resp = await fetch(proxyUrl);
-                if (resp.ok) {
-                    return await resp.text();
+                const resp = await fetch(proxyUrl, {
+                    signal: AbortSignal.timeout(12000) // 12초 타임아웃
+                });
+                
+                if (!resp.ok) {
+                    lastError = new Error(`HTTP ${resp.status} from proxy ${i+1}`);
+                    continue;
                 }
+
+                const html = await resp.text();
+                
+                // 차단된 응답인지 확인
+                if (this.isBlockedResponse(html)) {
+                    console.warn(`[Scraper] Proxy ${i+1} returned blocked/empty response, trying next...`);
+                    lastError = new Error(`Proxy ${i+1} blocked`);
+                    continue;
+                }
+                
+                // 랭킹 테이블이 있는 정상 응답인지 확인
+                if (!this.hasRankingTable(html)) {
+                    console.warn(`[Scraper] Proxy ${i+1} response has no ranking table, trying next...`);
+                    lastError = new Error(`Proxy ${i+1} no table`);
+                    continue;
+                }
+                
+                return html;
             } catch (e) {
+                console.warn(`[Scraper] Proxy ${i+1} failed:`, e.message);
                 lastError = e;
             }
         }
-        throw lastError || new Error(`Fetch failed for ${url}`);
+        
+        throw new Error(`모든 프록시 서버가 실패했습니다. 잠시 후 다시 시도해주세요.\n(${lastError?.message || 'Unknown error'})`);
     },
 
     parseTable(html) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         
-        // Structural Validation: Check for ranking table markers
-        // The site uses <table class="type01"> and <thead> with "Rank"
+        // 테이블 구조 검증
         const table = doc.querySelector('table.type01');
         const headers = Array.from(doc.querySelectorAll('th')).map(th => th.textContent.trim().toLowerCase());
         const isStructureValid = !!table && (headers.includes('rank') || headers.includes('순위'));
@@ -56,19 +118,16 @@ const Scraper = {
                 const rankText = cells[0].textContent.trim();
                 if (rankText === '1') hasRank1 = true;
 
-                // Name and potential team in parentheses
                 const nameText = cells[1].textContent.trim().split('\n')[0].trim();
                 const teamText = cells[2].textContent.trim();
                 
-                // Cleanup name if it contains team or other artifacts
                 const name = nameText.split('(')[0].trim();
                 const team = teamText || (nameText.includes('(') ? nameText.match(/\((.*?)\)/)?.[1] : '');
                 
                 const scoreText = cells[3].textContent.trim().replace(',', '');
                 const score = parseFloat(scoreText);
 
-                if (name && name.length >= 2 && !isNaN(score)) {
-                    // Unique key: "Name (Team)"
+                if (name && name.length >= 2 && !isNaN(score) && score > 0) {
                     const key = team ? `${name} (${team})` : name;
                     players[key] = score;
                 }
@@ -90,7 +149,7 @@ const Scraper = {
                 const pg = i + j;
                 const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=${position}&page=${pg}`;
                 promises.push(this.fetchPage(url).then(html => ({ pg, html })).catch(e => {
-                    console.error(`[Scraper] ${label} page ${pg} error:`, e);
+                    console.error(`[Scraper] ${label} page ${pg} error:`, e.message);
                     return { pg, error: e };
                 }));
             }
@@ -102,15 +161,27 @@ const Scraper = {
 
             for (const res of results) {
                 if (res.error) {
+                    // 1페이지 에러는 치명적 → throw
                     if (res.pg === 1) throw res.error;
-                    break;
+                    // 그 외 페이지는 건너뛰기
+                    console.warn(`[Scraper] ${label} page ${res.pg} skipped due to error`);
+                    continue;
                 }
 
                 const { players, isStructureValid, hasRank1 } = this.parseTable(res.html);
 
                 if (res.pg === 1) {
-                    if (!isStructureValid) throw new Error("사이트 구조 변동 감지 (Table Header missing)");
-                    if (Object.keys(players).length > 0 && !hasRank1) throw new Error("데이터 연속성 오류 (Rank 1 missing)");
+                    // 1페이지에서 구조 검증
+                    if (!isStructureValid) {
+                        throw new Error(`${label} 랭킹 테이블을 찾을 수 없습니다. 사이트가 변경되었을 수 있습니다.`);
+                    }
+                    if (Object.keys(players).length > 0 && !hasRank1) {
+                        // Rank 1이 없지만 데이터는 있는 경우 → 경고만 하고 계속 진행
+                        console.warn(`[Scraper] ${label}: Rank 1 missing on page 1, but data exists. Continuing...`);
+                    }
+                    if (Object.keys(players).length === 0) {
+                        throw new Error(`${label} 데이터가 비어 있습니다. 해당 월의 데이터가 아직 없을 수 있습니다.`);
+                    }
                 }
 
                 const beforeCount = Object.keys(allPlayers).length;
@@ -132,7 +203,7 @@ const Scraper = {
             if (noMoreData) break;
 
             if (i + chunkSize <= maxPages) {
-                await this.sleep(300); // short delay between chunks
+                await this.sleep(500); // 프록시 부하 방지를 위해 약간 더 긴 딜레이
             }
         }
         return allPlayers;
@@ -151,7 +222,7 @@ const Scraper = {
         console.log(`[Scraper] Total: ${Object.keys(batters).length} batters, ${Object.keys(pitchers).length} pitchers (Total: ${totalCount})`);
         
         if (totalCount === 0) {
-            throw new Error(`수집된 선수가 한 명도 없습니다. (서버 응답 확인 필요)`);
+            throw new Error(`수집된 선수가 한 명도 없습니다. 프록시 서버 문제일 수 있으니 잠시 후 다시 시도해주세요.`);
         }
 
         return { batters, pitchers };
