@@ -165,7 +165,7 @@ const Scraper = {
             // 실패 시 기존 단일 방식(fallback)을 위해 Error throw
             throw e;
         }
-    }
+    },
 
     async _scrapeConcurrently(position, maxPages, searchDate, progressBase, progressMax, label) {
         const allPlayers = {};
