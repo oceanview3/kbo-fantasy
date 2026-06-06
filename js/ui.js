@@ -120,11 +120,27 @@ const UI = {
     // Render ranking table (all teams)
     renderRankingTable(teams, month) {
         const tbody = document.getElementById('ranking-tbody');
+        
+        // 최신 월 기준 역순 정렬된 월 배열 생성 (예: 6월, 5월, 4월, 3월)
+        const currentMonthStr = DataStore.getCurrentMonth() || month;
+        const displayMonths = SEASON_MONTHS.filter(m => m <= currentMonthStr).reverse();
+
+        // 테이블 헤더 동적 렌더링
+        const theadRow = document.getElementById('ranking-thead-row');
+        if (theadRow) {
+            theadRow.innerHTML = `
+                <th scope="col" class="rank-col">순위</th>
+                <th scope="col" class="team-col">팀</th>
+                <th scope="col" class="score-col col-center" id="col-total-score" style="min-width: 90px;">총점</th>
+                ${displayMonths.map(m => `<th scope="col" class="score-col col-center month-col">${parseInt(m.split('-')[1])}월</th>`).join('')}
+                <th scope="col" class="detail-col"></th>
+            `;
+        }
 
         const sorted = teams
             .map(t => {
                 const stats = DataStore.getTeamScoreStats(t.id, month);
-                const monthScores = SEASON_MONTHS.map(m => DataStore.getTeamScore(t.id, m));
+                const monthScores = displayMonths.map(m => DataStore.getTeamScore(t.id, m));
                 return {
                     ...t,
                     score: stats.total,
