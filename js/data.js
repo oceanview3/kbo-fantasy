@@ -51,6 +51,7 @@ const SLOT_GROUPS = [
             { key: 'BN2', label: '후보 2' },
             { key: 'BN3', label: '후보 3' },
             { key: 'BN4', label: '후보 4' },
+            { key: 'BN5', label: '후보 5' },
         ]
     }
 ];
