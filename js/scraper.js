@@ -140,49 +140,60 @@ const Scraper = {
         return { players, isStructureValid, hasRank1 };
     },
 
+    async fetchMultiplePages(urls) {
+        // 첫 번째 프록시(Apps Script) URL만 추출
+        const proxyUrl = this.PROXIES[0].split('?')[0]; 
+        
+        try {
+            const resp = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: {
+                    // CORS preflight를 피하기 위해 text/plain 사용
+                    'Content-Type': 'text/plain',
+                },
+                body: JSON.stringify({ urls: urls }),
+                signal: AbortSignal.timeout(30000) // 30초 넉넉한 타임아웃
+            });
+            
+            const result = await resp.json();
+            if (result.success) {
+                return result.data; // HTML 배열 반환
+            } else {
+                throw new Error("Apps Script Error: " + result.error);
+            }
+        } catch (e) {
+            // 실패 시 기존 단일 방식(fallback)을 위해 Error throw
+            throw e;
+        }
+    }
+
     async _scrapeConcurrently(position, maxPages, searchDate, progressBase, progressMax, label) {
         const allPlayers = {};
-        const chunkSize = 15; // 5에서 15로 늘려 동시 수집량 증가
+        
+        // 수집할 모든 URL 생성 (타자 30개, 투수 20개 한꺼번에)
+        const urls = [];
+        for (let pg = 1; pg <= maxPages; pg++) {
+            urls.push(`${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=${position}&page=${pg}`);
+        }
 
-        for (let i = 1; i <= maxPages; i += chunkSize) {
-            const promises = [];
-            for (let j = 0; j < chunkSize && (i + j) <= maxPages; j++) {
-                const pg = i + j;
-                const url = `${this.BASE_URL}?p=chart&searchType=MONTHLY&searchDate=${searchDate}&position=${position}&page=${pg}`;
-                promises.push(this.fetchPage(url).then(html => ({ pg, html })).catch(e => {
-                    console.error(`[Scraper] ${label} page ${pg} error:`, e.message);
-                    return { pg, error: e };
-                }));
-            }
+        this.reportProgress(progressBase + (progressMax * 0.1), `${label} 데이터 구글 서버에 일괄 요청 중...`);
 
-            const results = await Promise.all(promises);
+        try {
+            // 1. 초고속 일괄 다운로드 시도 (Apps Script 전용)
+            const htmls = await this.fetchMultiplePages(urls);
+            
+            this.reportProgress(progressBase + (progressMax * 0.5), `${label} 데이터 분석 중...`);
+            
             let noMoreData = false;
+            
+            for (let i = 0; i < htmls.length; i++) {
+                const pg = i + 1;
+                const html = htmls[i];
+                const { players, isStructureValid, hasRank1 } = this.parseTable(html);
 
-            results.sort((a, b) => a.pg - b.pg);
-
-            for (const res of results) {
-                if (res.error) {
-                    // 1페이지 에러는 치명적 → throw
-                    if (res.pg === 1) throw res.error;
-                    // 그 외 페이지는 건너뛰기
-                    console.warn(`[Scraper] ${label} page ${res.pg} skipped due to error`);
-                    continue;
-                }
-
-                const { players, isStructureValid, hasRank1 } = this.parseTable(res.html);
-
-                if (res.pg === 1) {
-                    // 1페이지에서 구조 검증
-                    if (!isStructureValid) {
-                        throw new Error(`${label} 랭킹 테이블을 찾을 수 없습니다. 사이트가 변경되었을 수 있습니다.`);
-                    }
-                    if (Object.keys(players).length > 0 && !hasRank1) {
-                        // Rank 1이 없지만 데이터는 있는 경우 → 경고만 하고 계속 진행
-                        console.warn(`[Scraper] ${label}: Rank 1 missing on page 1, but data exists. Continuing...`);
-                    }
-                    if (Object.keys(players).length === 0) {
-                        throw new Error(`${label} 데이터가 비어 있습니다. 해당 월의 데이터가 아직 없을 수 있습니다.`);
-                    }
+                if (pg === 1) {
+                    if (!isStructureValid) throw new Error(`${label} 랭킹 테이블을 찾을 수 없습니다.`);
+                    if (Object.keys(players).length === 0) throw new Error(`${label} 데이터가 비어 있습니다.`);
                 }
 
                 const beforeCount = Object.keys(allPlayers).length;
@@ -190,20 +201,47 @@ const Scraper = {
                 const afterCount = Object.keys(allPlayers).length;
                 const newCount = afterCount - beforeCount;
 
-                if (Object.keys(players).length === 0 || (newCount === 0 && res.pg > 1)) {
-                    noMoreData = true;
+                if (Object.keys(players).length === 0 || (newCount === 0 && pg > 1)) {
+                    noMoreData = true; // 이후 페이지는 중복/빈 데이터
                 }
+                
+                if (noMoreData) break;
             }
-
-            const currentCount = Object.keys(allPlayers).length;
-            const currentPg = Math.min(i + chunkSize - 1, maxPages);
-            const progress = progressBase + Math.min(progressMax, (currentPg / maxPages) * progressMax);
             
-            this.reportProgress(progress, `${label} ${currentCount}명 수집 (~${currentPg}페이지)...`);
+            this.reportProgress(progressBase + progressMax, `${label} ${Object.keys(allPlayers).length}명 수집 완료!`);
+            return allPlayers;
 
-            if (noMoreData) break;
+        } catch (error) {
+            console.warn(`[Scraper] 일괄 수집 실패, 기존 방식으로 전환:`, error);
+            // 2. 일괄 수집 실패 시 (또는 옛날 코드를 쓰는 경우) 기존 방식 폴백
+            const chunkSize = 15;
+            for (let i = 1; i <= maxPages; i += chunkSize) {
+                const promises = [];
+                for (let j = 0; j < chunkSize && (i + j) <= maxPages; j++) {
+                    const pg = i + j;
+                    promises.push(this.fetchPage(urls[pg - 1]).then(html => ({ pg, html })).catch(e => ({ pg, error: e })));
+                }
+
+                const results = await Promise.all(promises);
+                let noMoreData = false;
+                results.sort((a, b) => a.pg - b.pg);
+
+                for (const res of results) {
+                    if (res.error) continue;
+                    const { players } = this.parseTable(res.html);
+                    const beforeCount = Object.keys(allPlayers).length;
+                    Object.assign(allPlayers, players);
+                    if (Object.keys(players).length === 0 || (Object.keys(allPlayers).length === beforeCount && res.pg > 1)) {
+                        noMoreData = true;
+                    }
+                }
+                const currentCount = Object.keys(allPlayers).length;
+                const currentPg = Math.min(i + chunkSize - 1, maxPages);
+                this.reportProgress(progressBase + ((currentPg / maxPages) * progressMax), `${label} ${currentCount}명 수집 (~${currentPg}페이지)... (일반 모드)`);
+                if (noMoreData) break;
+            }
+            return allPlayers;
         }
-        return allPlayers;
     },
 
     async scrapeAll(year, month) {
