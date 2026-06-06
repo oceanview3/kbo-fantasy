@@ -142,7 +142,7 @@ const Scraper = {
 
     async _scrapeConcurrently(position, maxPages, searchDate, progressBase, progressMax, label) {
         const allPlayers = {};
-        const chunkSize = 5;
+        const chunkSize = 15; // 5에서 15로 늘려 동시 수집량 증가
 
         for (let i = 1; i <= maxPages; i += chunkSize) {
             const promises = [];
@@ -202,10 +202,6 @@ const Scraper = {
             this.reportProgress(progress, `${label} ${currentCount}명 수집 (~${currentPg}페이지)...`);
 
             if (noMoreData) break;
-
-            if (i + chunkSize <= maxPages) {
-                await this.sleep(500); // 프록시 부하 방지를 위해 약간 더 긴 딜레이
-            }
         }
         return allPlayers;
     },
