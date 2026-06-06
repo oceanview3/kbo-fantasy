@@ -124,43 +124,19 @@ const UI = {
         const sorted = teams
             .map(t => {
                 const stats = DataStore.getTeamScoreStats(t.id, month);
+                const monthScores = SEASON_MONTHS.map(m => DataStore.getTeamScore(t.id, m));
                 return {
                     ...t,
                     score: stats.total,
-                    current: stats.current,
-                    prev: stats.prev
+                    monthScores: monthScores
                 };
             })
             .sort((a, b) => b.score - a.score);
 
-        // Update headers with month names (Mobile optimization)
-        const isMobile = window.innerWidth <= 768;
-        const curMonthNum = parseInt(month.split('-')[1]);
-        const monthIdx = SEASON_MONTHS.indexOf(month);
-        const prevMonthStr = monthIdx > 0 ? SEASON_MONTHS[monthIdx - 1] : null;
-        const prevMonthNum = prevMonthStr ? parseInt(prevMonthStr.split('-')[1]) : null;
-
-        const totalHeader = document.getElementById('col-total-score');
-        if (totalHeader) totalHeader.textContent = isMobile ? '총점' : '총 누적 점수';
-
-        const curHeader = document.getElementById('col-current-month');
-        if (curHeader) {
-            curHeader.textContent = isMobile ? `${curMonthNum}월` : `${curMonthNum}월 점수`;
-        }
-
-        const prevHeader = document.getElementById('col-prev-month');
-        if (prevHeader) {
-            if (isMobile) {
-                prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월` : '-';
-            } else {
-                prevHeader.textContent = prevMonthNum ? `${prevMonthNum}월 점수` : '-';
-            }
-        }
-
         if (!sorted.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6">
+                    <td colspan="12">
                         <div class="empty-state">
                             <div class="empty-icon">⚾</div>
                             <div class="empty-text">등록된 팀이 없습니다</div>
@@ -179,13 +155,19 @@ const UI = {
             else if (rank === 2) badgeClass = 'top2';
             else if (rank === 3) badgeClass = 'top3';
 
+            const monthCells = team.monthScores.map(s => {
+                const isZero = s === 0;
+                const clazz = isZero ? 'score-zero' : (s > 0 ? 'score-positive' : 'score-negative');
+                const val = isZero ? '-' : s.toFixed(2);
+                return `<td class="score-col col-center"><span class="score-value ${clazz}">${val}</span></td>`;
+            }).join('');
+
             return `
                 <tr data-team-id="${team.id}">
                     <td class="rank-col"><span class="rank-badge ${badgeClass}">${rank}</span></td>
                     <td><span class="team-name-cell">${team.name}</span></td>
-                    <td class="score-col"><span class="score-value ${team.score >= 0 ? 'score-positive' : 'score-negative'}">${team.score.toFixed(2)}</span></td>
-                    <td class="score-col"><span class="score-value ${team.current >= 0 ? 'score-positive' : 'score-negative'}">${team.current.toFixed(2)}</span></td>
-                    <td class="score-col hidden-mobile"><span class="score-value ${team.prev >= 0 ? 'score-positive' : 'score-negative'}">${team.prev.toFixed(2)}</span></td>
+                    <td class="score-col col-center"><span class="score-value ${team.score >= 0 ? 'score-positive' : 'score-negative'}">${team.score.toFixed(2)}</span></td>
+                    ${monthCells}
                     <td class="detail-col"><span class="detail-arrow">›</span></td>
                 </tr>
             `;
